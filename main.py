@@ -34,6 +34,8 @@ class RobotController(object):
 
         # モータへの命令を管理するためのキューを作成
         self.motor_command_queue = self.process_manager.Queue()
+        # 実行待ちのモータの命令を管理するキューを作成
+        self.waiting_motor_command_queue = self.process_manager.Queue()
         # モータの情報を管理するためのディクショナリを作成
         self.motor_info = self.process_manager.dict()
 
@@ -47,7 +49,8 @@ class RobotController(object):
             # モータを操作するクラスを作成
             self.motor_controller = MotorController(
                 self.motor_left, self.motor_right,
-                self.motor_command_queue, self.motor_info)
+                self.motor_command_queue, self.waiting_motor_command_queue,
+                self.motor_info)
         
         if RobotConfig.SpeechRecognitionEnabled:
             # 音声入力エンジンを操作するクラスを作成

@@ -131,7 +131,13 @@ class JuliusController(object):
 
                         # モータへ命令を送信
                         if word == "進め":
-                            motor_cmd = { "command": "accel", "speed": 20000, "slope": 0.5 }
+                            motor_cmd = { "command": "accel", "speed": 9000, "slope": 0.02 }
+                            print("JuliusController::process_input(): " +
+                                  "command has been sent: {0}"
+                                  .format(motor_cmd))
+                            motor_command_queue.put(motor_cmd)
+                        elif word == "ブレーキ":
+                            motor_cmd = { "command": "brake", "speed": 0, "slope": 0.02 }
                             print("JuliusController::process_input(): " +
                                   "command has been sent: {0}"
                                   .format(motor_cmd))
@@ -151,7 +157,7 @@ class JuliusController(object):
                         elif word == "曲がれ":
                             motor_cmd = { "command": "rotate", "direction": direction }
                             print("JuliusController::process_input(): " +
-                                  "command has been sent: {-}"
+                                  "command has been sent: {0}"
                                   .format(motor_cmd))
                             motor_command_queue.put(motor_cmd)
                         elif word == "左":
