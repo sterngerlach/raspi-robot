@@ -1,0 +1,19 @@
+# Makefile
+# face_detection: face_detection.cpp
+#     gcc -I /usr/local/include -o face_detection face_detection.cpp
+
+CC		= g++
+CFLAGS		= -O4 -Wall -I/usr/local/include
+DEST		= /usr/local/bin
+LDFLAGS		= -L/usr/local/lib
+LIBS		= -lm `pkg-config --libs opencv`
+OBJS		= sample_opencv0.o
+PROGRAM		= sample_opencv0
+
+all:		$(PROGRAM)
+
+$(PROGRAM):	$(OBJS)
+		$(CC) $(OBJS) $(LDFLAGS) $(LIBS) -o $(PROGRAM)
+
+clean:		rm -f *.o *~ $(PROGRAM)
+
