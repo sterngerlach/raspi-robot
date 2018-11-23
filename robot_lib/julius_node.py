@@ -1,5 +1,5 @@
 # coding: utf-8
-# julius_controller.py
+# julius_node.py
 
 import multiprocessing as mp
 import socket
@@ -7,7 +7,9 @@ import subprocess as sp
 import time
 import xml.etree.ElementTree as ET
 
-class JuliusController(object):
+from data_sender_node import DataSenderNode
+
+class JuliusNode(DataSenderNode):
     """
     音声認識エンジンJuliusを操作するクラス
     """
@@ -18,25 +20,31 @@ class JuliusController(object):
     # Juliusサーバが使用するポート番号
     JULIUS_SERVER_PORT = 10500
 
-    def __init__(self, motor_command_queue):
+    def __init__(self,
+        state_dict,
+        julius_startup_script_path="../scripts/julius-start.sh",
+        accuracy_threshold=0.95):
         """コンストラクタ"""
+        super().__init__(state_dict)
+
+        # 認識精度の閾値(この値を下回る場合は認識した語彙を無視)
+        self.accuracy_threshold = accuracy_threshold
 
         # Juliusをモジュールモードで起動
         self.julius_process = sp.Popen(
-            ["./julius-start.sh"], stdout=sp.PIPE, shell=True)
+            [julius_startup_script_path], stdout=sp.PIPE, shell=True)
 
         # JuliusのプロセスIDを取得
         self.julius_pid = str(self.julius_process.stdout.read().decode("utf-8"))
         self.julius_pid = self.julius_pid.strip()
 
-        print("JuliusController::__init__(): " +
-              "julius launched with pid {0}"
+        print("JuliusNode::__init__(): julius launched with pid {0}"
               .format(self.julius_pid))
 
         # サーバに接続するまで待機
         time.sleep(5)
 
-        print("JuliusController::__init__(): establishing connection ...")
+        print("JuliusNode::__init__(): establishing connection ...")
 
         # TCPソケットを作成
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -49,28 +57,12 @@ class JuliusController(object):
             (JuliusController.JULIUS_SERVER_HOST,
              JuliusController.JULIUS_SERVER_PORT))
 
-        print("JuliusController::__init__(): connected to Julius server")
-        
-        # モータへの命令を管理するキュー
-        self.motor_command_queue = motor_command_queue
-        # 音声入力を処理するためのプロセスを作成
-        self.process_handler = mp.Process(
-            target=self.process_input, args=(self.motor_command_queue,))
-        # デーモンプロセスに設定
-        # 親プロセスが終了するときに子プロセスを終了させる
-        self.process_handler.daemon = True
-        
-        return
-
-    def __del__(self):
-        """デストラクタ"""
-
-        # プロセスを終了
-        # self.process_handler.terminate()
-
-        return
-
-    def process_input(self, motor_command_queue):
+        print("JuliusNode::__init__(): " +
+              "connected to Julius server (host: {0}, port: {1})"
+              .format(JuliusController.JULIUS_SERVER_HOST,
+                      JuliusController.JULIUS_SERVER_PORT))
+    
+    def process_input(self):
         """音声入力を処理"""
 
         # 認識されると次のようなXML文字列が出力される
@@ -90,115 +82,73 @@ class JuliusController(object):
         
         try:
             data = ""
-            direction = ""
 
             while True:
                 # 音声入力の処理
                             
-                # 音声認識ができたとき
-                if "</RECOGOUT>\n." in data:
-                    # XML文字列を抜き出して整形
-                    data_xml = data[data.find("<RECOGOUT>"):data.find("</RECOGOUT>\n.") + 11]
-                    # 文章の開始を表す特殊な単語(vocaファイルを参照)
-                    data_xml = data_xml.replace("[s]", "start")
-                    # 文章の末尾を表す特殊な単語(vocaファイルを参照)
-                    data_xml = data_xml.replace("[/s]", "end")
-                    # XMLヘッダを付加
-                    data_xml = "<?xml version=\"1.0\"?>\n" + data_xml
+                # 音声認識ができない場合はデータを受信
+                if "</RECOGOUT>\n." not in data:
+                    # データを受信
+                    data += str(self.client_socket.recv(128).decode("utf-8"))
+                    continue
+                
+                # 音声認識ができた場合の処理
 
-                    # print("JuliusController::process_input(): " +
-                    #       "retrieved xml: \n{0}"
-                    #       .format(data_xml))
+                # XML文字列を抜き出して整形
+                data_xml = data[data.find("<RECOGOUT>"):data.find("</RECOGOUT>\n.") + 11]
+                # 受信データからXML文字列を除去
+                data = data[data.find("</RECOGOUT>\n.") + 12:]
 
-                    # XML文字列を解析
-                    root = ET.fromstring(data_xml)
+                # 文章の開始を表す特殊な単語(vocaファイルを参照)
+                data_xml = data_xml.replace("[s]", "start")
+                # 文章の末尾を表す特殊な単語(vocaファイルを参照)
+                data_xml = data_xml.replace("[/s]", "end")
+                # XMLヘッダを付加
+                data_xml = "<?xml version=\"1.0\"?>\n" + data_xml
+                # XML文字列を解析
+                root = ET.fromstring(data_xml)
+
+                # 認識した語彙から認識結果のディクショナリを生成
+                result = { "words": [] }
+                
+                # 認識できた語彙の処理
+                for whypo in root.findall("./SHYPO/WHYPO"):
+                    # 認識できた語彙と認識精度を取得
+                    word = whypo.get("WORD")
+                    accuracy = float(whypo.get("CM"))
                     
-                    # 認識できた語彙の処理
-                    for whypo in root.findall("./SHYPO/WHYPO"):
-                        # 認識できた語彙と認識精度を取得
-                        word = whypo.get("WORD")
-                        accuracy = float(whypo.get("CM"))
-                        
-                        print("JuliusController::process_input(): " +
-                              "recognized word: {0}, accuracy: {1}"
-                              .format(word, accuracy))
-
-                        if word == "start" or word == "end":
-                            continue
-
-                        if accuracy < 0.95:
-                            continue
-
-                        # モータへ命令を送信
-                        if word == "進め":
-                            motor_cmd = { "command": "accel", "speed": 9000, "slope": 0.02 }
-                            print("JuliusController::process_input(): " +
-                                  "command has been sent: {0}"
-                                  .format(motor_cmd))
-                            motor_command_queue.put(motor_cmd)
-                        elif word == "ブレーキ":
-                            motor_cmd = { "command": "brake", "speed": 0, "slope": 0.02 }
-                            print("JuliusController::process_input(): " +
-                                  "command has been sent: {0}"
-                                  .format(motor_cmd))
-                            motor_command_queue.put(motor_cmd)
-                        elif word == "ストップ":
-                            motor_cmd = { "command": "stop" }
-                            print("JuliusController::process_input(): " +
-                                  "command has been sent: {0}"
-                                  .format(motor_cmd))
-                            motor_command_queue.put(motor_cmd)
-                        elif word == "黙れ":
-                            motor_cmd = { "command": "end" }
-                            print("JuliusController::process_input(): " +
-                                  "command has been sent: {0}"
-                                  .format(motor_cmd))
-                            motor_command_queue.put(motor_cmd)
-                        elif word == "曲がれ":
-                            motor_cmd = { "command": "rotate", "direction": direction }
-                            print("JuliusController::process_input(): " +
-                                  "command has been sent: {0}"
-                                  .format(motor_cmd))
-                            motor_command_queue.put(motor_cmd)
-                        elif word == "左":
-                            direction = "left"
-                        elif word == "右":
-                            direction = "right"
+                    print("JuliusNode::process_input(): word: {0}, accuracy: {1}"
+                          .format(word, accuracy))
                     
-                    # 入力データをクリア
-                    data = ""
-                else:
-                    # 入力データをクリア
-                    data += str(self.client_socket.recv(1024).decode("utf-8"))
-                    # print("JuliusController::process_input(): data received: {0}"
-                    #       .format(data))
-
+                    # 最初と最後の語彙は無視
+                    if word == "start" or word == "end":
+                        continue
+                    # 認識精度が設定した閾値を下回る場合は無視
+                    if accuracy < self.accuracy_threshold:
+                        continue
+                    
+                    # 認識した語彙を認識結果に追加
+                    result["words"].append(word)
+                    
+                    # 認識した語彙が方向である場合
+                    if word in ("左", "右"):
+                        result["direction"] = word
+                    # 認識した語彙が命令である場合
+                    if word in ("進め", "ブレーキ", "ストップ", "黙れ", "曲がれ"):
+                        result["command"] = word
+                
+                # 認識した語彙の情報を更新
+                self.state_dict["result"] = result
+                    
         except KeyboardInterrupt:
             # プロセスが割り込まれた場合
-            print("JuliusController::process_input(): " +
-                  "KeyboardInterrupt occurred")
+            print("JuliusNode::process_input(): KeyboardInterrupt occurred")
 
+        finally:
             # Juliusのプロセスを終了
             self.julius_process.kill()
             sp.run(["kill -s 9 {0}".format(self.julius_pid)], shell=True)
+
             # ソケットを切断
             self.client_socket.close()
-
-        return
-    
-    def run(self):
-        """音声入力を開始"""
-
-        # プロセスを開始
-        self.process_handler.start()
-
-        return
-    
-    def emergency_stop(self):
-        """音声入力を緊急停止"""
-        
-        # プロセスを終了
-        self.process_handler.terminate()
-
-        return
 
