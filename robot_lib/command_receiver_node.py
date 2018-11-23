@@ -16,17 +16,25 @@ class CommandReceiverNode(Node):
     コマンドを受け取って実行するノードを表す基底クラス
     """
 
-    def __init__(self, state_dict, msg_queue, command_queue):
+    def __init__(self, process_manager, msg_queue):
         """コンストラクタ"""
-        super().__init__(state_dict, msg_queue)
-
+        super().__init__(process_manager, msg_queue)
+        
         # ノードに送られる命令を保持するキュー(プロセス間で共有)
-        self.command_queue = command_queue
+        self.initialize_command_queue()
 
-        # コマンドを実行するためのプロセスを作成
+        # コマンドを実行するためのプロセス
+        self.initialize_process_handler()
+
+    def initialize_command_queue(self):
+        """ノードに送られる命令を保持するキューを初期化"""
+        self.command_queue = self.process_manager.Queue()
+    
+    def initialize_process_handler(self):
+        """コマンドを実行するためのプロセスを作成"""
         # ノードの状態を格納するディクショナリstate_dictと,
         # ノードに送られる命令を保持するキューcommand_queueは
-        # プロセス間で共有されているが, メソッドの引数として指定
+        # プロセス間で共有されているため, メソッドの引数として指定しない
         self.process_handler = mp.Process(target=self.process_command, args=())
         # デーモンプロセスに設定
         # 親プロセスが終了するときに子プロセスを終了させる
@@ -44,7 +52,19 @@ class CommandReceiverNode(Node):
         """命令キューに追加された命令が全て実行されるまで待機"""
         self.command_queue.join()
 
-    def run():
+    def run(self):
         """ノードの実行を開始"""
         self.process_handler.start()
+    
+    def terminate(self):
+        """ノードの実行を停止"""
+        self.process_handler.terminate()
 
+        # ノードの状態を格納するディクショナリを再初期化
+        self.initialize_state_dict()
+        # ノードに送られる命令を格納するキューを再初期化
+        self.initialize_command_queue()
+        # コマンドを実行するためのプロセスを再初期化
+        # プロセスを再度初期化することで再び実行を開始できるようになる
+        self.initialize_process_handler()
+        
