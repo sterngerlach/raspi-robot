@@ -1,6 +1,8 @@
 
 # .gitignore
 
-.o
+*.swp
+*.o
 samples/
+__pycache__/
 
