@@ -11,18 +11,22 @@ class Srf02Node(DataSenderNode):
     超音波センサ(Srf02)を操作するクラス
     """
 
-    def __init__(self,
-        state_dict, msg_queue,
-        srf02, interval=0.5, addr_list=[0x70]):
+    def __init__(self, process_manager, msg_queue,
+                 srf02, near_obstacle_threshold=15,
+                 interval=0.5, addr_list=[0x70]):
         """コンストラクタ"""
-        super().__init__(state_dict, msg_queue)
+        super().__init__(process_manager, msg_queue)
 
         # 超音波センサ(Srf02)
         self.srf02 = srf02
+        # 障害物に接近したと判定する距離の閾値
+        self.near_obstacle_threshold = near_obstacle_threshold
         # 超音波センサの値を取得する間隔
         self.interval = interval
         # 超音波センサのアドレスのリスト
         self.addr_list = addr_list
+        # 指数移動平均のパラメータ(平滑化係数)
+        self.smoothing_coeff = 0.75
 
         # 各アドレスに対応する超音波センサの情報を初期化
         for addr in self.addr_list:
@@ -40,8 +44,25 @@ class Srf02Node(DataSenderNode):
                     if result is not None:
                         # 測距データと最小の距離を取得
                         dist, mindist = result
+
                         # 各アドレスの超音波センサの情報を更新
-                        self.state_dict[addr] = { "dist": dist, "mindist": mindist }
+                        if self.state_dict[addr] is None:
+                            self.state_dict[addr] = {
+                                "dist": dist, "mindist": mindist,
+                                "near": 1 if dist <= self.near_obstacle_threshold else 0 }
+                        else:
+                            # 指数移動平均により計測値を平滑化
+                            dist = self.state_dict[addr]["dist"] * self.smoothing_coeff + \
+                                dist * (1.0 - self.smoothing_coeff)
+                            # 何回連続して障害物に接近したと判定されているか
+                            near = self.state_dict[addr]["near"] + 1 \
+                                if dist <= self.near_obstacle_threshold else 0
+                            self.state_dict[addr] = { "dist": dist, "mindist": mindist, "near": near }
+                            
+                            # 5回以上連続して障害物の接近と判定された場合
+                            if near >= 5:
+                                # アプリケーションにメッセージを送出
+                                self.send_message("srf02", { "addr": addr, "state": "obstacle-detected" })
 
                 time.sleep(self.interval)
 

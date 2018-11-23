@@ -22,10 +22,9 @@ class WebCamNode(DataSenderNode):
         """カスケード分類器の作成"""
         cls.cascade_classifier_face = cv2.CascadeClassifier(cls.cascade_file_path)
 
-    def __init__(self, state_dict, msg_queue, camera_id):
+    def __init__(self, process_manager, msg_queue, camera_id):
         """コンストラクタ"""
-
-        super().__init__(state_dict, msg_queue)
+        super().__init__(process_manager, msg_queue)
 
         # ビデオ撮影デバイスの作成
         self.camera_id = camera_id

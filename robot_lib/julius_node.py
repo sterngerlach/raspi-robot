@@ -20,12 +20,10 @@ class JuliusNode(DataSenderNode):
     # Juliusサーバが使用するポート番号
     JULIUS_SERVER_PORT = 10500
 
-    def __init__(self,
-        state_dict,
-        msg_queue,
-        julius_startup_script_path="../scripts/julius-start.sh"):
+    def __init__(self, process_manager, msg_queue,
+                 julius_startup_script_path="../scripts/julius-start.sh"):
         """コンストラクタ"""
-        super().__init__(state_dict, msg_queue)
+        super().__init__(process_manager, msg_queue)
 
         # Juliusをモジュールモードで起動
         self.julius_process = sp.Popen(
