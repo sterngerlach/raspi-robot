@@ -4,11 +4,14 @@
 import multiprocessing as mp
 import os
 import pathlib
+import wiringpi as wp
 
 from data_sender_node import DataSenderNode
 from command_receiver_node import CommandReceiverNode, UnknownCommandException
 from motor_l6470 import MotorL6470
 from motor_node import MotorNode
+from servo_gws_s03t import ServoGwsS03t
+from servo_motor_node import ServoMotorNode
 from srf02 import Srf02
 from srf02_node import Srf02Node
 from julius_node import JuliusNode
@@ -37,9 +40,20 @@ class NodeManager(object):
         # ノードからアプリケーションへのメッセージのキュー
         self.__msg_queue = self.__process_manager.Queue()
         
+        # SPIチャネルの個数
+        self.__spi_channels_num = 2
+        # GPIOが初期化されたかどうか
+        self.__gpio_initialized = False
+        # SPIが初期化されたかどうか
+        self.__spi_initialized = [False for i in range(self.__spi_channels_num)]
+
         # モータのノードを初期化
         if self.__config_dict["enable_motor"]:
             self.__setup_motor_node(config_dict["motor"])
+
+        # サーボモータのノードを初期化
+        if self.__config_dict["enable_servo"]:
+            self.__setup_servo_motor_node(config_dict["servo"])
         
         # 超音波センサのノードを初期化
         if self.__config_dict["enable_srf02"]:
@@ -57,8 +71,41 @@ class NodeManager(object):
         if self.__config_dict["webcam"]:
             self.__setup_webcam_node(config_dict["webcam"])
 
+    def __setup_gpio(self):
+        """GPIOの初期化"""
+        
+        if not all(self.__spi_initialized):
+            # 全てのSPIチャネルが初期化されていない場合はエラー
+            raise Exception("NodeManager::__setup_gpio(): " +
+                            "You must initialize all spi channels by calling " +
+                            "NodeManager::__setup_spi() before initializing gpio")
+
+        if not self.__gpio_initialized:
+            # GPIOを初期化
+            if wp.wiringPiSetupGpio() == -1:
+                raise Exception("NodeManager::__setup_gpio(): " +
+                                "wiringpi::wiringPiSetupGpio() failed")
+            
+            # GPIOは初期化済み
+            self.__gpio_initialized = True
+
+    def __setup_spi(self, spi_channel, speed):
+        """SPIチャネルの初期化"""
+
+        if not self.__spi_initialized[spi_channel]:
+            if wp.wiringPiSPISetup(spi_channel, speed) == -1:
+                raise Exception("NodeManager::__setup_spi(): " +
+                                "wiringpi::wiringPiSPISetup() failed")
+
+            # 指定されたSPIチャネルは初期化済み
+            self.__spi_initialized[spi_channel] = True
+
     def __setup_motor_node(self, config_dict):
         """モータのノードを初期化"""
+        
+        # SPIチャネルを全て初期化
+        self.__setup_spi(spi_channel=0, speed=MotorL6470.L6470_SPI_SPEED)
+        self.__setup_spi(spi_channel=1, speed=MotorL6470.L6470_SPI_SPEED)
 
         # モータの状態を保持するディクショナリ
         self.__motor_state_dict = self.__process_manager.dict()
@@ -76,6 +123,32 @@ class NodeManager(object):
         # モータのノードを追加
         self.__add_command_receiver_node(
             "motor", self.__motor_state_dict, self.__motor_node)
+
+    def __setup_servo_motor_node(self, config_dict):
+        """サーボモータのノードを初期化"""
+
+        # GPIOを初期化
+        self.__setup_gpio()
+
+        # サーボモータの状態を保持するディクショナリ
+        self.__servo_motor_dict = self.__process_manager.dict()
+        # サーボモータへの命令を保持するキュー
+        self.__servo_motor_command_queue = self.__process_manager.Queue()
+        # サーボモータが使用するGPIOの端子
+        self.__servo_motor_gpio_pin = 18
+        # サーボモータのID
+        self.__servo_id = 0
+        # サーボモータを初期化
+        # 48を指定したときに0度, 144を指定したときに180度となることを確認済み
+        self.__servo_motor = ServoGwsS03t(
+            self.__servo_motor_gpio_pin, min_value=48, max_value=144,
+            min_angle=0, max_angle=180, frequency=50)
+
+        # サーボモータのノードを追加
+        self.__add_command_receiver_node(
+            self.__servo_motor_dict, self.__msg_queue, 
+            self.__servo_motor_command_queue, self.__servo_id,
+            "servo" + str(self.__servo_id))
 
     def __setup_srf02_node(self, config_dict):
         """超音波センサのノードを初期化"""
