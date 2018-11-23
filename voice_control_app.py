@@ -19,11 +19,16 @@ class VoiceControlApp(object):
         self.__config = {
             "enable_motor": True,
             "enable_servo": False,
-            "enable_srf02": False,
+            "enable_srf02": True,
             "enable_julius": True,
             "enable_openjtalk": True,
             "enable_webcam": False,
             "motor": {},
+            "srf02": {
+                "near_obstacle_threshold": 15,
+                "interval": 0.25,
+                "addr_list": [0x70]
+            },
             "julius": {}
         }
         
@@ -56,6 +61,10 @@ class VoiceControlApp(object):
                         # 適当な時間だけ待機
                         time.sleep(0.1)
                         continue
+                else:
+                    # 適当な時間だけ待機
+                    time.sleep(0.1)
+                    continue
 
                 if msg["sender"] == "motor":
                     # モータからのメッセージを処理
@@ -63,6 +72,12 @@ class VoiceControlApp(object):
                 elif msg["sender"] == "julius":
                     # 音声認識エンジンJuliusからのメッセージを処理
                     self.__handle_julius_msg(msg["content"])
+                elif msg["sender"] == "srf02":
+                    # 超音波センサからのメッセージを処理
+                    self.__handle_srf02_msg(msg["content"])
+                else:
+                    # それ以外のノードからのメッセージは無視
+                    continue
                 
                 # アプリケーションを終了
                 if self.__app_exit:
@@ -94,13 +109,29 @@ class VoiceControlApp(object):
             if msg_content["command"] == "end":
                 self.__app_exit = True
 
-         return
+    def __handle_srf02_msg(self, msg_content):
+        """超音波センサからのメッセージを処理"""
+
+        # 障害物を検知した場合は緊急停止
+        if msg_content["state"] == "obstacle-detected":
+            # モータを緊急停止
+            self.__node_manager.get_node("motor").terminate()
+            self.__node_manager.get_node("motor").stop()
+            
+            # 障害物を検知したことをユーザに知らせる
+            self.__talk("ぶつかる")
+
+            # モータは命令を実行中でない
+            self.__is_motor_executing = False
+
+            # モータのノードを再実行
+            self.__node_manager.get_node("motor").run()
 
     def __handle_julius_msg(self, msg_content):
         """音声認識エンジンJuliusからのメッセージを処理"""
 
+        # モータが命令を実行中であれば無視
         if self.__is_motor_executing:
-            # モータが命令を実行中であれば無視
             self.__talk("ちょっと待ってください")
             return
 
