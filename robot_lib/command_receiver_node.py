@@ -16,9 +16,9 @@ class CommandReceiverNode(Node):
     コマンドを受け取って実行するノードを表す基底クラス
     """
 
-    def __init__(self, state_dict, command_queue):
+    def __init__(self, state_dict, msg_queue, command_queue):
         """コンストラクタ"""
-        super().__init__(state_dict)
+        super().__init__(state_dict, msg_queue)
 
         # ノードに送られる命令を保持するキュー(プロセス間で共有)
         self.command_queue = command_queue

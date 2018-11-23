@@ -10,9 +10,9 @@ class DataSenderNode(Node):
     データを読み取るノードを表す基底クラス
     """
 
-    def __init__(self, state_dict):
+    def __init__(self, state_dict, msg_queue):
         """コンストラクタ"""
-        super().__init__(state_dict)
+        super().__init__(state_dict, msg_queue)
 
         # 入力を処理するためのプロセスを作成
         # ノードの状態を格納するディクショナリstate_dictは

@@ -12,10 +12,11 @@ class MotorNode(CommandReceiverNode):
     ロボットのモータを操作するクラス
     """
     
-    def __init__(self, state_dict, command_queue, motor_left, motor_right):
+    def __init__(self,
+        state_dict, msg_queue, command_queue,
+        motor_left, motor_right):
         """コンストラクタ"""
-
-        super().__init__(state_dict, command_queue)
+        super().__init__(state_dict, msg_queue, command_queue)
         
         # モータの状態をディクショナリに格納
         self.state_dict["speed_left"] = 0
@@ -42,26 +43,35 @@ class MotorNode(CommandReceiverNode):
             cmd = self.command_queue.get()
             print("MotorNode::process_command(): command received: {0}"
                   .format(cmd))
+
+            # 命令でない場合は例外をスロー
+            if "command" not in cmd:
+                raise UnknownCommandException(
+                    "MotorNode::process_command(): unknown command: {0}"
+                    .format(cmd))
+
+            # 命令の実行開始をアプリケーションに伝達
+            self.send_message("motor", { "command": cmd["command"], "state": "start" })
    
             # モータへの命令を実行
             if cmd["command"] == "accel":
                 # 2つのモータを加速
-                self.accelerate(cmd["speed"], cmd["slope"])
+                self.accelerate(cmd["speed"], cmd["wait_time"])
             elif cmd["command"] == "accel-left":
                 # 左のモータを加速
-                self.accelerate_left(cmd["speed"], cmd["slope"])
+                self.accelerate_left(cmd["speed"], cmd["wait_time"])
             elif cmd["command"] == "accel-right":
                 # 右のモータを加速
-                self.accelerate_right(cmd["speed"], cmd["slope"])
+                self.accelerate_right(cmd["speed"], cmd["wait_time"])
             elif cmd["command"] == "brake":
                 # 2つのモータを減速
-                self.decelerate(cmd["speed"], cmd["slope"])
+                self.decelerate(cmd["speed"], cmd["wait_time"])
             elif cmd["command"] == "brake-left":
                 # 左のモータを減速
-                self.decelerate_left(cmd["speed"], cmd["slope"])
+                self.decelerate_left(cmd["speed"], cmd["wait_time"])
             elif cmd["command"] == "brake-right":
                 # 右のモータを加速
-                self.decelerate_right(cmd["speed"], cmd["slope"])
+                self.decelerate_right(cmd["speed"], cmd["wait_time"])
             elif cmd["command"] == "stop":
                 # 2つのモータを停止
                 self.stop()
@@ -79,6 +89,9 @@ class MotorNode(CommandReceiverNode):
                 raise UnknownCommandException(
                     "MotorNode::process_command(): unknown command: {0}"
                     .format(cmd["command"]))
+
+            # 命令の実行終了をアプリケーションに伝達
+            self.send_message("motor", { "command": cmd["command"], "state": "done" })
 
             # モータへの命令が完了
             self.command_queue.task_done()

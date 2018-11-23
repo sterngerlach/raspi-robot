@@ -11,10 +11,11 @@ class Srf02Node(DataSenderNode):
     超音波センサ(Srf02)を操作するクラス
     """
 
-    def __init__(self, state_dict, srf02, interval=0.5, addr_list=[0x70]):
+    def __init__(self,
+        state_dict, msg_queue,
+        srf02, interval=0.5, addr_list=[0x70]):
         """コンストラクタ"""
-
-        super().__init__(state_dict)
+        super().__init__(state_dict, msg_queue)
 
         # 超音波センサ(Srf02)
         self.srf02 = srf02

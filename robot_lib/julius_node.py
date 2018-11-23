@@ -22,13 +22,10 @@ class JuliusNode(DataSenderNode):
 
     def __init__(self,
         state_dict,
-        julius_startup_script_path="../scripts/julius-start.sh",
-        accuracy_threshold=0.95):
+        msg_queue,
+        julius_startup_script_path="../scripts/julius-start.sh"):
         """コンストラクタ"""
-        super().__init__(state_dict)
-
-        # 認識精度の閾値(この値を下回る場合は認識した語彙を無視)
-        self.accuracy_threshold = accuracy_threshold
+        super().__init__(state_dict, msg_queue)
 
         # Juliusをモジュールモードで起動
         self.julius_process = sp.Popen(
@@ -109,7 +106,7 @@ class JuliusNode(DataSenderNode):
                 root = ET.fromstring(data_xml)
 
                 # 認識した語彙から認識結果のディクショナリを生成
-                result = { "words": [] }
+                result_msg = { "words": [] }
                 
                 # 認識できた語彙の処理
                 for whypo in root.findall("./SHYPO/WHYPO"):
@@ -123,23 +120,20 @@ class JuliusNode(DataSenderNode):
                     # 最初と最後の語彙は無視
                     if word == "start" or word == "end":
                         continue
-                    # 認識精度が設定した閾値を下回る場合は無視
-                    if accuracy < self.accuracy_threshold:
-                        continue
                     
                     # 認識した語彙を認識結果に追加
-                    result["words"].append(word)
+                    result_msg["words"].append((word, accuracy))
                     
                     # 認識した語彙が方向である場合
                     if word in ("左", "右"):
-                        result["direction"] = word
+                        result_msg["direction"] = (word, accuracy)
                     # 認識した語彙が命令である場合
                     if word in ("進め", "ブレーキ", "ストップ", "黙れ", "曲がれ"):
-                        result["command"] = word
+                        result_msg["command"] = (word, accuracy)
                 
-                # 認識した語彙の情報を更新
-                self.state_dict["result"] = result
-                    
+                # 認識した語彙の情報をアプリケーションに送信
+                self.send_message("julius", result_msg)
+                
         except KeyboardInterrupt:
             # プロセスが割り込まれた場合
             print("JuliusNode::process_input(): KeyboardInterrupt occurred")
