@@ -2,6 +2,9 @@
 # coding: utf-8
 # voice_control_app.py
 
+import queue
+import time
+
 from robot_lib.node_manager import NodeManager
 
 class VoiceControlApp(object):
@@ -15,6 +18,7 @@ class VoiceControlApp(object):
         # ロボットの各種設定
         self.__config = {
             "enable_motor": True,
+            "enable_servo": False,
             "enable_srf02": False,
             "enable_julius": True,
             "enable_openjtalk": True,
@@ -40,7 +44,18 @@ class VoiceControlApp(object):
         try:
             while True:
                 # ノードからアプリケーションへのメッセージを取得
-                msg = self.__msg_queue.get()
+                # get()メソッドを使用するとデッドロックが発生する可能性があるため
+                # get_nowait()メソッドを使用
+                if not self.__msg_queue.empty():
+                    try:
+                        # empty()メソッドがFalseを返しても実際には空である可能性があり,
+                        # キューが空であったときにget_nowait()メソッドを呼び出すと
+                        # queue.Empty例外がスローされるため, これを捕捉する必要がある
+                        msg = self.__msg_queue.get_nowait()
+                    except queue.Empty:
+                        # 適当な時間だけ待機
+                        time.sleep(0.1)
+                        continue
 
                 if msg["sender"] == "motor":
                     # モータからのメッセージを処理
