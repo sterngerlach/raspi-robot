@@ -22,20 +22,17 @@ class MotorL6470(object):
 
     def __init__(self, spi_channel, speed=L6470_SPI_SPEED):
         """コンストラクタ"""
-
         print("MotorL6470::__init__(): channel: {0}, speed: {1}"
               .format(spi_channel, speed))
-
+        
+        # 使用するSPIチャネル
         self.channel = spi_channel
 
-        if wp.wiringPiSPISetup(self.channel, speed) < 0:
-            raise MotorInitFailedException("MotorL6470::__init__(): " +
-                                           "wiringpi::wiringPiSPISetup() failed")
+        # SPIチャネルはwiringpi::wiringPiSPISetup()関数の呼び出しによって,
+        # 初期化済みであると仮定する
 
         # モータのセットアップ
         self.setup()
-
-        return
 
     def read_byte(self):
         """1バイトのデータを読み込み"""
@@ -59,8 +56,6 @@ class MotorL6470(object):
         data = data.to_bytes(1, byteorder="big")
         wp.wiringPiSPIDataRW(self.channel, data)
 
-        return
-
     def read_bytes(self, length_in_bytes):
         """指定されたバイト数のデータを読み込み"""
 
@@ -81,8 +76,6 @@ class MotorL6470(object):
         # bytesオブジェクトを作成
         data = data.to_bytes(length_in_bytes, byteorder="big")
         wp.wiringPiSPIDataRW(self.channel, data)
-
-        return
 
     def setup(self):
         """モータのセットアップ"""
@@ -139,8 +132,6 @@ class MotorL6470(object):
         # デセラレーションファイナルスロープ
         self.write_byte(0x29)
 
-        return
-
     def get_status(self):
         """モータの状態を取得"""
 
@@ -158,9 +149,8 @@ class MotorL6470(object):
     def run(self, speed):
         """モータを所定の速度で回転"""
         
-        #if speed % 500 == 0:
-        print("MotorL6470::run(): channel: {0}, speed: {1}"
-              .format(self.channel, speed))
+        # print("MotorL6470::run(): channel: {0}, speed: {1}"
+        #       .format(self.channel, speed))
         
         # スピードが正であれば前進, 負であれば後進
         cmd = 0x50 if speed < 0 else 0x51
@@ -174,8 +164,6 @@ class MotorL6470(object):
         self.write_byte((0x00FF00 & speed) >> 8)
         self.write_byte((0x0000FF & speed))
 
-        return
-    
     def softstop(self):
         """モータを減速させて停止"""
 
@@ -195,8 +183,6 @@ class MotorL6470(object):
 
             break
 
-        return
-
     def softhiz(self):
         """モータのブリッジを高インピーダンスに設定"""
 
@@ -215,6 +201,4 @@ class MotorL6470(object):
                 time.sleep(0.05)
 
             break
-
-        return
 
