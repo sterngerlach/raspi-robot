@@ -33,9 +33,10 @@ class WebCamNode(DataSenderNode):
         self.video_capture.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, 240)
         self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 180)
-
-        self.capture_width = self.video_capture.get(cv2.CAP_PROP_FRAME_WIDTH)
-        self.capture_height = self.video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        
+        # キャプチャする画像のサイズをプロセス間で共有
+        self.state_dict["capture_width"] = self.video_capture.get(cv2.CAP_PROP_FRAME_WIDTH)
+        self.state_dict["capture_height"] = self.video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
         
     def __del__(self):
         """デストラクタ"""
