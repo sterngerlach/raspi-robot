@@ -5,4 +5,5 @@
 *.o
 samples/
 __pycache__/
+.vscode/
 
