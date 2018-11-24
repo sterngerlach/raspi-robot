@@ -35,6 +35,8 @@ class VoiceControlApp(object):
         # ロボットのモジュールの管理クラスを初期化
         self.__node_manager = NodeManager(self.__config)
         self.__msg_queue = self.__node_manager.get_msg_queue()
+        self.__openjtalk_node = self.__node_manager.get_node("openjtalk")
+        self.__motor_node = self.__node_manager.get_node("motor")
 
     def run(self):
         # ノードの実行を開始
@@ -45,6 +47,9 @@ class VoiceControlApp(object):
 
         # アプリケーションを終了するかどうか
         self.__app_exit = False
+        
+        # 受信したメッセージ
+        msg = None
 
         try:
             while True:
@@ -75,13 +80,11 @@ class VoiceControlApp(object):
                 elif msg["sender"] == "srf02":
                     # 超音波センサからのメッセージを処理
                     self.__handle_srf02_msg(msg["content"])
-                else:
-                    # それ以外のノードからのメッセージは無視
-                    continue
                 
                 # アプリケーションを終了
                 if self.__app_exit:
                     self.__talk("じゃあね")
+                    self.__openjtalk_node.wait_until_all_command_done()
                     break
                     
         except KeyboardInterrupt:
@@ -115,8 +118,8 @@ class VoiceControlApp(object):
         # 障害物を検知した場合は緊急停止
         if msg_content["state"] == "obstacle-detected":
             # モータを緊急停止
-            self.__node_manager.get_node("motor").terminate()
-            self.__node_manager.get_node("motor").stop()
+            self.__motor_node.terminate()
+            self.__motor_node.stop()
             
             # 障害物を検知したことをユーザに知らせる
             self.__talk("ぶつかる")
@@ -125,7 +128,7 @@ class VoiceControlApp(object):
             self.__is_motor_executing = False
 
             # モータのノードを再実行
-            self.__node_manager.get_node("motor").run()
+            self.__motor_node.run()
 
     def __handle_julius_msg(self, msg_content):
         """音声認識エンジンJuliusからのメッセージを処理"""
