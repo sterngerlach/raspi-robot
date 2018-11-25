@@ -22,6 +22,7 @@ class VoiceControlApp(object):
             "enable_srf02": True,
             "enable_julius": True,
             "enable_openjtalk": True,
+            "enable_speechapi": False,
             "enable_webcam": False,
             "motor": {},
             "srf02": {

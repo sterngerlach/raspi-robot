@@ -22,6 +22,7 @@ class FollowHumanFaceApp(object):
             "enable_srf02": True,
             "enable_julius": True,
             "enable_openjtalk": True,
+            "enable_speechapi": False,
             "enable_webcam": True,
             "motor": {},
             "srf02": {
