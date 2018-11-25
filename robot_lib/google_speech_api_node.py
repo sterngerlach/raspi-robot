@@ -66,7 +66,6 @@ class MicrophoneStream(object):
         while not self.__is_closed:
             # 1つ以上のデータがバッファ内に格納されていることを保証
             chunk = self.__audio_buffer.get()
-
             # データがNoneであれば音声ストリームの終了を示す
             if chunk is None:
                 return
@@ -77,7 +76,6 @@ class MicrophoneStream(object):
                 try:
                     # バッファから音声データを取得
                     chunk = self.__audio_buffer.get_nowait()
-
                     if chunk is None:
                         return
 
@@ -111,7 +109,7 @@ class GoogleSpeechApiNode(DataSenderNode):
             config=self.__recognition_config,
             interim_results=True)
 
-    def process_input(self):
+    def update(self):
         """音声入力を処理"""
 
         try:
@@ -155,8 +153,8 @@ class GoogleSpeechApiNode(DataSenderNode):
                             result_msg["direction"] = (direction, confidence)
 
                     # 認識した語彙に命令が含まれる場合
-                    for direction in ("進め", "ブレーキ", "ストップ", "黙れ", "曲がれ"):
-                        if direction in transcript:
+                    for command in ("進め", "ブレーキ", "ストップ", "黙れ", "曲がれ"):
+                        if command in transcript:
                             result_msg["command"] = (command, confidence)
 
                     # アプリケーションにメッセージを送出
