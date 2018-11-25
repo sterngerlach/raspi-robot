@@ -16,6 +16,7 @@ from srf02 import Srf02
 from srf02_node import Srf02Node
 from julius_node import JuliusNode
 from openjtalk_node import OpenJTalkNode
+from google_speech_api_node import GoogleSpeechApiNode
 from webcam_node import WebCamNode
 
 class NodeManager(object):
@@ -66,6 +67,10 @@ class NodeManager(object):
         # 音声合成システムOpenJTalkのノードを初期化
         if self.__config_dict["enable_openjtalk"]:
             self.__setup_openjtalk_node(config_dict["openjtalk"])
+
+        # Google Cloud Speech APIを利用した音声認識のノードを初期化
+        if self.__config_dict["enable_speechapi"]:
+            self.__setup_speechapi_node(config_dict["speechapi"])
 
         # ウェブカメラのノードを初期化
         if self.__config_dict["webcam"]:
@@ -183,6 +188,16 @@ class NodeManager(object):
 
         # 音声合成システムOpenJTalkのノードを追加
         self.__add_command_receiver_node("openjtalk", self.__openjtalk_node)
+
+    def __setup_speechapi_node(self, config_dict):
+        """Google Cloud Speech APIを利用した音声認識のノードを初期化"""
+
+        # Google Cloud Speech APIのノードを作成
+        self.__google_speech_api_node = GoogleSpeechApiNode(
+            self.__process_manager, self.__msg_queue)
+
+        # Google Cloud Speech APIのノードを追加
+        self.__add_data_sender_node("speechapi", self.__google_speech_api_node)
 
     def __setup_webcam_node(self, config_dict):
         """ウェブカメラを操作するノードを初期化"""
