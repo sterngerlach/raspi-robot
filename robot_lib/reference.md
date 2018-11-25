@@ -164,3 +164,103 @@
 
     各ノードからアプリケーションに向けて送信されるメッセージのキューを取得します。
 
+## 各ノードのクラス
+
+### `MotorNode`クラス
+
+`CommandReceiverNode`クラスを継承しており、アプリケーションからの指示に従って左右のモータを実際に動作させます。アプリケーションからは次のような命令を送信できます(変更される可能性が高いです)。
+
+- accelコマンド
+
+    左右両方のモータを指定の速度まで加速させます(`command`キーに`accel`を指定)。`speed`キーに速度、`wait_time`に適当な待ち時間を設定します(待ち時間を小さくすると加速が急になります)。
+
+    ```python
+    node_manager.send_command("motor",
+        { "command": "accel", "speed": 9000, "wait_time": 0.06 })
+    ```
+    
+    以下のように、1回のループの実行で速度が250ずつ増えるように実装されています。`wait_time`は各ループの実行後の待ち時間です。速度には250で割り切れるような値を設定してください。
+
+    ```python
+    def accelerate(self, speed, wait_time):
+        """2つのモータを加速"""
+        
+        while self.state_dict["speed_left"] < speed:
+            self.state_dict["speed_left"] += 250
+            self.state_dict["speed_right"] += 250
+
+            self.motor_left.run(self.state_dict["speed_left"])
+            self.motor_right.run(-self.state_dict["speed_right"])
+
+            time.sleep(wait_time)
+    ```
+
+- accel-leftコマンド
+
+    左側のモータを指定の速度まで回転させます(`command`キーに`accel-left`を指定)。速度には250で割り切れるような値を設定してください。
+
+    ```python
+    node_manager.send_command("motor",
+        { "command": "accel-left", "speed": 9000, "wait_time": 0.06 })
+    ```
+
+- accel-rightコマンド
+
+    右側のモータを指定の速度まで回転させます(`command`キーに`accel-right`を指定)。速度には250で割り切れるような値を設定してください。
+
+    ```python
+    node_manager.send_command("motor",
+        { "command": "accel-right", "speed": 9000, "wait_time": 0.06 })
+    ```
+
+- brakeコマンド
+
+    左右両方のモータを指定の速度まで減速させます(`command`キーに`brake`を指定)。速度には250で割り切れるような値を設定してください。
+
+    ```python
+    node_manager.send_command("motor",
+        { "command": "brake", "speed": 3000, "wait_time": 0.06 })
+    ```
+
+- brake-leftコマンド
+
+    左側のモータを指定の速度まで減速させます(`command`キーに`brake-left`を指定)。速度には250で割り切れるような値を設定してください。
+
+    ```python
+    node_manager.send_command("motor",
+        { "command": "brake-left", "speed": 3000, "wait_time": 0.06 })
+    ```
+
+- brake-rightコマンド
+
+    右側のモータを指定の速度まで減速させます(`command`キーに`brake-right`を指定)。速度には250で割り切れるような値を設定してください。
+
+    ```python
+    node_manager.send_command("motor",
+        { "command": "brake-right", "speed": 3000, "wait_time": 0.06 })
+    ```
+
+- stopコマンド
+
+    両側のモータの速度を0にてロボットを止めます(`command`キーに`stop`を指定)。
+
+    ```python
+    node_manager.send_command("motor", { "command": "stop" })
+    ```
+
+- endコマンド
+
+    モータの使用を停止します。このコマンドを実行すると、他のコマンドをモータに送信してもモータは動かなくなります。
+
+    ```python
+    node_manager.send_command("motor", { "command": "end" })
+    ```
+
+- rotateコマンド
+
+    ロボットが停止した状態から時計回り、半時計回りに90度回転します。ロボットの走行時にはこのコマンドを使用してはいけません。`command`キーに`rotate`を指定し、`direction`キーには`left`(半時計回り)または`right`(時計回り)を指定します。`wait_time`キーに待ち時間を設定した場合、値を大きくすると回転量が大きく、値を小さくすると回転量が小さくなるので、回転量を微調節することができます。`wait_time`キーを使用しない場合は既定値(1.5秒)が利用されます。
+
+    ```python
+    node_manager.send_command("motor", { "command": "rotate", "direction": "left" })
+    ```
+
