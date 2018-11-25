@@ -40,29 +40,31 @@ class Srf02Node(DataSenderNode):
                 for addr in self.addr_list:
                     # 各アドレスの超音波センサから距離を取得
                     result = self.srf02.get_values(addr)
+                    
+                    if result is None:
+                        continue
 
-                    if result is not None:
-                        # 測距データと最小の距離を取得
-                        dist, mindist = result
+                    # 測距データと最小の距離を取得
+                    dist, mindist = result
 
-                        # 各アドレスの超音波センサの情報を更新
-                        if self.state_dict[addr] is None:
-                            self.state_dict[addr] = {
-                                "dist": dist, "mindist": mindist,
-                                "near": 1 if dist <= self.near_obstacle_threshold else 0 }
-                        else:
-                            # 指数移動平均により計測値を平滑化
-                            dist = self.state_dict[addr]["dist"] * self.smoothing_coeff + \
-                                dist * (1.0 - self.smoothing_coeff)
-                            # 何回連続して障害物に接近したと判定されているか
-                            near = self.state_dict[addr]["near"] + 1 \
-                                if dist <= self.near_obstacle_threshold else 0
-                            self.state_dict[addr] = { "dist": dist, "mindist": mindist, "near": near }
-                            
-                            # 5回以上連続して障害物の接近と判定された場合
-                            if near >= 5:
-                                # アプリケーションにメッセージを送出
-                                self.send_message("srf02", { "addr": addr, "state": "obstacle-detected" })
+                    # 各アドレスの超音波センサの情報を更新
+                    if self.state_dict[addr] is None:
+                        self.state_dict[addr] = {
+                            "dist": dist, "mindist": mindist,
+                            "near": 1 if dist <= self.near_obstacle_threshold else 0 }
+                    else:
+                        # 指数移動平均により計測値を平滑化
+                        dist = self.state_dict[addr]["dist"] * self.smoothing_coeff + \
+                            dist * (1.0 - self.smoothing_coeff)
+                        # 何回連続して障害物に接近したと判定されているか
+                        near = self.state_dict[addr]["near"] + 1 \
+                            if dist <= self.near_obstacle_threshold else 0
+                        self.state_dict[addr] = { "dist": dist, "mindist": mindist, "near": near }
+                        
+                        # 5回以上連続して障害物の接近と判定された場合
+                        if near >= 5:
+                            # アプリケーションにメッセージを送出
+                            self.send_message("srf02", { "addr": addr, "state": "obstacle-detected" })
 
                 time.sleep(self.interval)
 
