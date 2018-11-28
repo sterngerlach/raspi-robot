@@ -83,7 +83,7 @@ class MicrophoneStream(object):
                     data.append(chunk)
                 except queue.Empty:
                     break
-
+            
             yield b"".join(data)
 
 class GoogleSpeechApiNode(DataSenderNode):
@@ -119,52 +119,57 @@ class GoogleSpeechApiNode(DataSenderNode):
         """音声入力を処理"""
 
         try:
-            with MicrophoneStream() as mic_stream:
-                audio_generator = mic_stream.generator()
-                requests = (types.StreamingRecognizeRequest(audio_content=content)
-                            for content in audio_generator)
-                responses = self.__speech_client.streaming_recognize(
-                    self.__streaming_config, requests)
-
-                # 音声認識の結果をアプリケーションに送信
-                for response in responses:
-                    # 認識結果が含まれない場合は無視
-                    if not response.results:
-                        continue
-                    # 最初の認識結果のみを取得
-                    result = response.results[0]
+            while True:
+                try:
+                    with MicrophoneStream() as mic_stream:
+                        audio_generator = mic_stream.generator()
+                        requests = (types.StreamingRecognizeRequest(audio_content=content)
+                                    for content in audio_generator)
+                        responses = self.__speech_client.streaming_recognize(
+                            self.__streaming_config, requests)
                     
-                    # 認識結果が含まれない場合は無視
-                    if not result.alternatives:
-                        continue
-                    # 認識の途中である場合は無視
-                    if not result.is_final:
-                        continue
+                        # 音声認識の結果をアプリケーションに送信
+                        for response in responses:
+                            # 認識結果が含まれない場合は無視
+                            if not response.results:
+                                continue
+                            # 最初の認識結果のみを取得
+                            result = response.results[0]
+                            
+                            # 認識結果が含まれない場合は無視
+                            if not result.alternatives:
+                                continue
+                            # 認識の途中である場合は無視
+                            if not result.is_final:
+                                continue
 
-                    # 認識結果の最初の候補を取得
-                    transcript = result.alternatives[0].transcript
-                    confidence = result.alternatives[0].confidence
-                    words = result.alternatives[0].words
+                            # 認識結果の最初の候補を取得
+                            transcript = result.alternatives[0].transcript
+                            confidence = result.alternatives[0].confidence
+                            words = result.alternatives[0].words
 
-                    # アプリケーションに送出するメッセージを生成
-                    result_msg = {}
-                    # 認識した全体の文章
-                    result_msg["transcript"] = transcript
-                    # 認識された語彙のリスト
-                    result_msg["words"] = [(word_info.word, confidence) for word_info in words]
+                            # アプリケーションに送出するメッセージを生成
+                            result_msg = {}
+                            # 認識した全体の文章
+                            result_msg["transcript"] = transcript
+                            # 認識された語彙のリスト
+                            result_msg["words"] = [(word_info.word, confidence) for word_info in words]
 
-                    # 認識した語彙に方向が含まれる場合
-                    for direction in ("左", "右"):
-                        if direction in transcript:
-                            result_msg["direction"] = (direction, confidence)
+                            # 認識した語彙に方向が含まれる場合
+                            for direction in ("左", "右"):
+                                if direction in transcript:
+                                    result_msg["direction"] = (direction, confidence)
 
-                    # 認識した語彙に命令が含まれる場合
-                    for command in ("進め", "ブレーキ", "ストップ", "黙れ", "曲がれ"):
-                        if command in transcript:
-                            result_msg["command"] = (command, confidence)
+                            # 認識した語彙に命令が含まれる場合
+                            for command in ("進め", "ブレーキ", "ストップ", "黙れ", "曲がれ"):
+                                if command in transcript:
+                                    result_msg["command"] = (command, confidence)
 
-                    # アプリケーションにメッセージを送出
-                    self.send_message("speechapi", result_msg)
+                            # アプリケーションにメッセージを送出
+                            self.send_message("speechapi", result_msg)
+                except Exception as e:
+                    print("GoogleSpeechApiNode::update(): exception was thrown: {}".format(e))
+                    continue
         except KeyboardInterrupt:
             # プロセスが割り込まれた場合
             print("GoogleSpeechApiNode::process_input(): KeyboardInterrupt occurred")
