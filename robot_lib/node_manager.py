@@ -179,7 +179,7 @@ class NodeManager(object):
         """音声合成システムOpenJTalkのノードを初期化"""
 
         # 音声合成システムOpenJTalkを開始するスクリプトのパスを設定
-        file_dir = pathlib.Path(os.path.dirname(os.path.abspath(__file__))
+        file_dir = pathlib.Path(os.path.dirname(os.path.abspath(__file__)))
         script_path = file_dir.parent.joinpath("scripts", "openjtalk-start.sh")
 
         # 音声合成システムOpenJTalkのノードを初期化

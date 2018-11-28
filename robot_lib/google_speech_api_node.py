@@ -24,7 +24,7 @@ class MicrophoneStream(object):
     # 1秒間のサンプリング回数
     RECORDING_RATE = 16000
     # 0.1秒間のサンプリング回数
-    RECORDING_CHUNK = int(MicrophoneStream.RECORDING_RATE / 10)
+    RECORDING_CHUNK = int(RECORDING_RATE / 10)
 
     def __init__(self):
         """コンストラクタ"""
