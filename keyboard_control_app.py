@@ -156,7 +156,8 @@ class KeyboardControlApp(object):
                     time.sleep(3)
                 elif command == "srf02":
                     print("srf02({0}): dist: {1} cm, mindist: {2} cm, near: {3}"
-                          .format(self.__srf02_state[0x70]["dist"],
+                          .format(0x70,
+                                  self.__srf02_state[0x70]["dist"],
                                   self.__srf02_state[0x70]["mindist"],
                                   self.__srf02_state[0x70]["near"]))
                 elif command == "talk":
