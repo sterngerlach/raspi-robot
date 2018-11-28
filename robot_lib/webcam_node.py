@@ -58,7 +58,7 @@ class WebCamNode(DataSenderNode):
                 frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
                 # 顔検出の処理
-                faces = WebCamController.cascade_classifier_face.detectMultiScale(
+                faces = WebCamNode.cascade_classifier_face.detectMultiScale(
                     frame_gray, scaleFactor=1.1,
                     minNeighbors=5, minSize=(15, 15))
 

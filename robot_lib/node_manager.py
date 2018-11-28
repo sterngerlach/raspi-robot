@@ -73,7 +73,7 @@ class NodeManager(object):
             self.__setup_speechapi_node(config_dict["speechapi"])
 
         # ウェブカメラのノードを初期化
-        if self.__config_dict["webcam"]:
+        if self.__config_dict["enable_webcam"]:
             self.__setup_webcam_node(config_dict["webcam"])
 
     def __setup_gpio(self):
@@ -201,6 +201,9 @@ class NodeManager(object):
 
     def __setup_webcam_node(self, config_dict):
         """ウェブカメラを操作するノードを初期化"""
+        
+        # カスケード分類器の初期化
+        WebCamNode.setup_cascade_classifier()
 
         # ウェブカメラのノードを作成
         self.__webcam_node = WebCamNode(
