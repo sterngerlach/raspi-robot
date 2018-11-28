@@ -2,8 +2,13 @@
 # coding: utf-8
 # follow_human_face_app.py
 
+import os
 import queue
+import sys
 import time
+
+sys.path.append(os.path.dirname(__file__))
+sys.path.append(os.path.join(os.path.dirname(__file__), "robot_lib"))
 
 from robot_lib.node_manager import NodeManager
 
@@ -20,7 +25,7 @@ class FollowHumanFaceApp(object):
             "enable_motor": True,
             "enable_servo": False,
             "enable_srf02": True,
-            "enable_julius": True,
+            "enable_julius": False,
             "enable_openjtalk": True,
             "enable_speechapi": False,
             "enable_webcam": True,
@@ -77,6 +82,10 @@ class FollowHumanFaceApp(object):
                     continue
 
                 # 検出された顔を元にモータへの命令を決定
+                if not "faces" in self.__webcam_state:
+                    # 適当な時間だけ待機
+                    continue
+
                 faces = self.__webcam_state["faces"]
 
                 if faces is None:
@@ -90,13 +99,13 @@ class FollowHumanFaceApp(object):
                 center_y = face_y + face_h / 2
                 
                 # キャプチャされた画像内の顔の中心位置によって進行方向を決定
-                if center_x < self.__webcam_capture_width / 3:
+                if center_x < self.__webcam_capture_width / 5 * 2:
                     self.__talk("左に曲がります")
                     self.__send_motor_command(
                         { "command": "accel-right", "speed": 12000, "wait_time": 0.06 })
                     self.__send_motor_command(
                         { "command": "brake-right", "speed": 9000, "wait_time": 0.06 })
-                else if center_x > self.__webcam_capture_width / 3 * 2:
+                elif center_x > self.__webcam_capture_width / 5 * 3:
                     self.__talk("右に曲がります")
                     self.__send_motor_command(
                         { "command": "accel-left", "speed": 12000, "wait_time": 0.06 })
@@ -126,6 +135,7 @@ class FollowHumanFaceApp(object):
     def __talk(self, sentence):
         """音声合成エンジンOpenJTalkで指定された文章を話す"""
         self.__node_manager.send_command("openjtalk", { "sentence": sentence })
+        self.__node_manager.get_node("openjtalk").wait_until_all_command_done()
 
     def __send_motor_command(self, cmd):
         """モータに指定された命令を送信"""

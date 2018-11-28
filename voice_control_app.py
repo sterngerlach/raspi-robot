@@ -2,8 +2,13 @@
 # coding: utf-8
 # voice_control_app.py
 
+import os
 import queue
+import sys
 import time
+
+sys.path.append(os.path.dirname(__file__))
+sys.path.append(os.path.join(os.path.dirname(__file__), "robot_lib"))
 
 from robot_lib.node_manager import NodeManager
 
@@ -19,7 +24,7 @@ class VoiceControlApp(object):
         self.__config = {
             "enable_motor": True,
             "enable_servo": False,
-            "enable_srf02": True,
+            "enable_srf02": False,
             "enable_julius": True,
             "enable_openjtalk": True,
             "enable_speechapi": False,
@@ -27,10 +32,11 @@ class VoiceControlApp(object):
             "motor": {},
             "srf02": {
                 "near_obstacle_threshold": 15,
-                "interval": 0.25,
+                "interval": 5,
                 "addr_list": [0x70]
             },
-            "julius": {}
+            "julius": {},
+            "openjtalk": {}
         }
         
         # ロボットのモジュールの管理クラスを初期化
@@ -156,10 +162,10 @@ class VoiceControlApp(object):
         # 認識した語彙に応じてモータに命令を送信
         if command == "進め":
             # モータに命令を送信
-            self.__send_motor_command({ "command": "accel", "speed": 9000, "wait_time": 0.2 })
+            self.__send_motor_command({ "command": "accel", "speed": 9000, "wait_time": 0.03 })
         elif command == "ブレーキ":
             # モータに命令を送信
-            self.__send_motor_command({ "command": "brake", "speed": 0, "wait_time": 0.2 })
+            self.__send_motor_command({ "command": "brake", "speed": 0, "wait_time": 0.03 })
         elif command == "ストップ":
             # モータに命令を送信
             self.__send_motor_command({ "command": "stop" })
