@@ -2,9 +2,14 @@
 # coding: utf-8
 # keyboard_control_app.py
 
+import os
 import queue
+import sys
 import threading
 import time
+
+sys.path.append(os.path.dirname(__file__))
+sys.path.append(os.path.join(os.path.dirname(__file__), "robot_lib"))
 
 from robot_lib.node_manager import NodeManager
 
@@ -41,7 +46,7 @@ class KeyboardControlApp(object):
         self.__node_manager = NodeManager(self.__config)
         self.__msg_queue = self.__node_manager.get_msg_queue()
         self.__motor_node = self.__node_manager.get_node("motor")
-        self.__servo_motor_node = self.__node_manager.get_node("servo")
+        self.__servo_motor_node = self.__node_manager.get_node("servo0")
         self.__srf02_state = self.__node_manager.get_node_state("srf02")
 
     def __talk(self, sentence):
@@ -145,8 +150,10 @@ class KeyboardControlApp(object):
                     self.__motor_node.stop()
                     self.__motor_node.run()
                 elif command == "cream":
-                    self.__node_manager.send_command("servo", { "angle": 180 })
-                    self.__node_manager.send_command("servo", { "angle": 0 })
+                    self.__node_manager.send_command("servo0", { "angle": 180 })
+                    time.sleep(3)
+                    self.__node_manager.send_command("servo0", { "angle": 0 })
+                    time.sleep(3)
                 elif command == "srf02":
                     print("srf02({0}): dist: {1} cm, mindist: {2} cm, near: {3}"
                           .format(self.__srf02_state[0x70]["dist"],
@@ -170,4 +177,13 @@ class KeyboardControlApp(object):
             # プロセスが割り込まれた場合
             with self.__lock:
                 print("KeyboardControlApp::__handle_keyboard_input(): KeyboardInterrupt occurred")
-            
+
+def main():
+    # アプリケーションのインスタンスを作成
+    app = KeyboardControlApp()
+    # アプリケーションを実行
+    app.run()
+
+if __name__ == "__main__":
+    main()
+
