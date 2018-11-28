@@ -170,7 +170,7 @@ class NodeManager(object):
 
         # 音声認識エンジンJuliusのノードを初期化
         self.__julius_node = JuliusNode(
-            self.__process_manager, self._msg_queue, str(script_path))
+            self.__process_manager, self.__msg_queue, str(script_path))
 
         # 音声認識エンジンJuliusのノードを追加
         self.__add_data_sender_node("julius", self.__julius_node)
