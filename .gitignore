@@ -1,6 +1,7 @@
 
 # .gitignore
 
+speech-api-credentials.json
 *.swp
 *.o
 samples/
