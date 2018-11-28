@@ -16,6 +16,8 @@ class Srf02(object):
         # 引数の1はデータバス番号(/dev/i2c-1の1)に対応
         self.i2c = smbus.SMBus(1)
 
+        print("Srf02::__init__(): initialization succeeded")
+
     def __del__(self):
         """デストラクタ"""
         # I2Cデータバス(/dev/i2c-1)をクローズ

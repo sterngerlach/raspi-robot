@@ -50,7 +50,7 @@ class ServoGwsS03t(object):
         # RangeはハードウェアPWMの分解能に相当する値で, WiringPiの場合は1024を設定
 
         # PWMの動作周波数は50Hz(20ms周期)であるから, Clockに375, Rangeに1024を設定
-        wp.pwmSetClock(19.2 * (10 ** 6) / self.pwm_range / self.pwm_frequency)
+        wp.pwmSetClock(int(19.2 * (10 ** 6) / self.pwm_range / self.pwm_frequency))
         wp.pwmSetRange(self.pwm_range)
 
     def __del__(self):
@@ -78,7 +78,7 @@ class ServoGwsS03t(object):
                              .format(val, self.max_value))
         
         # 値をGPIOの端子に書き込み
-        wp.pwmWrite(self.gpio_pin, val)
+        wp.pwmWrite(self.gpio_pin, int(val))
     
     def set_angle(self, angle):
         """角度(0度から180度まで)を指定"""
@@ -99,5 +99,5 @@ class ServoGwsS03t(object):
         val = self.min_value + \
             (self.max_value - self.min_value) / (self.max_angle - self.min_angle) * \
             (angle - self.min_angle)
-        wp.pwmWrite(self.gpio_pin, val)
+        wp.pwmWrite(self.gpio_pin, int(val))
 

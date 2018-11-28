@@ -6,6 +6,7 @@
 # https://cloud.google.com/speech-to-text/docs/reference/rest/v1/speech/recognize
 
 import multiprocessing as mp
+import os
 import pyaudio
 import queue
 import sys
@@ -99,6 +100,11 @@ class GoogleSpeechApiNode(DataSenderNode):
 
     def __setup_google_speech_api(self):
         """Google Cloud Speech APIの初期化"""
+        # 環境変数GOOGLE_APPLICATION_CREDENTIALSを設定
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = \
+            os.path.join(os.path.dirname(__file__), "speech-api-credentials.json")
+
+        # Google Cloud Speech APIの初期化
         self.__language_code = "ja-JP"
         self.__speech_client = speech.SpeechClient()
         self.__recognition_config = types.RecognitionConfig(

@@ -21,7 +21,7 @@ class JuliusNode(DataSenderNode):
     JULIUS_SERVER_PORT = 10500
 
     def __init__(self, process_manager, msg_queue,
-                 julius_startup_script_path="../scripts/julius-start.sh"):
+                 julius_startup_script_path):
         """コンストラクタ"""
         super().__init__(process_manager, msg_queue)
 
@@ -49,15 +49,14 @@ class JuliusNode(DataSenderNode):
 
         # Juliusのサーバに接続
         self.client_socket.connect(
-            (JuliusController.JULIUS_SERVER_HOST,
-             JuliusController.JULIUS_SERVER_PORT))
+            (JuliusNode.JULIUS_SERVER_HOST, JuliusNode.JULIUS_SERVER_PORT))
 
         print("JuliusNode::__init__(): " +
               "connected to Julius server (host: {0}, port: {1})"
-              .format(JuliusController.JULIUS_SERVER_HOST,
-                      JuliusController.JULIUS_SERVER_PORT))
+              .format(JuliusNode.JULIUS_SERVER_HOST,
+                      JuliusNode.JULIUS_SERVER_PORT))
     
-    def process_input(self):
+    def update(self):
         """音声入力を処理"""
 
         # 認識されると次のようなXML文字列が出力される
