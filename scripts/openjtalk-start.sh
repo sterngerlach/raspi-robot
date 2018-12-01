@@ -13,5 +13,4 @@ echo "$1" | open_jtalk \
 -x /var/lib/mecab/dic/open-jtalk/naist-jdic \
 -ow $OUT_FILE && \
 aplay --quiet $OUT_FILE
-rm -f $OUT_FILE
 
