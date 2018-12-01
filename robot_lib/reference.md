@@ -132,7 +132,8 @@
         "motor": {},                # モータの設定(特に設定内容は無いため空のディクショナリを指定)
         "servo": {},                # サーボモータの設定(特になし)
         "srf02": {
-            "near_obstacle_threshold": 15,  # 障害物接近を判定するための距離の閾値
+            "distance_threshold": 15,       # 障害物に接近したと判定するための距離の閾値
+            "near_obstacle_threshold": 5,   # 測定値を連続で何度下回ったときに障害物の接近と判断するか
             "interval": 0.25,               # 距離の計測を行う間隔(秒)
             "addr_list": [0x70, 0x71]       # 超音波センサのアドレスのリスト
         },
@@ -171,6 +172,44 @@
 
 `CommandReceiverNode`クラスを継承しており、アプリケーションからの指示に従って左右のモータを実際に動作させます。
 
+#### 各種変換関数
+
+- `convert_speed_to_steps_per_second(speed)`
+
+    モータの速度を1秒間あたりのステップ数に変換します。モータの速度は後述するコマンドで指定します。
+
+- `convert_steps_per_second_to_speed(steps_per_second)`
+
+    1秒間あたりのステップ数をモータの速度に変換します。
+
+- `convert_speed_to_centimeters_per_second(speed)`
+
+    モータの速度を車輪の回転速度(センチメートル毎秒)に変換します。
+
+- `convert_centimeters_per_second_to_speed(centimeters_per_second)`
+
+    車輪の回転速度(センチメートル毎秒)をモータの速度に変換します。
+
+- `convert_speed_to_revolutions_per_second(speed)`
+
+    モータの速度を1秒間あたりの車輪の回転数に変換します。
+
+- `convert_revolutions_per_second_to_speed(revolutions_per_second)`
+
+    1秒間あたりの車輪の回転数をモータの速度に変換します。
+
+- `calculate_turning_radius(left_velocity, right_velocity)`
+
+    左右の車輪の回転速度(センチメートル毎秒)からロボットの旋回半径を計算します。
+
+- `calculate_center_velocity(left_velocity, right_velocity)`
+
+    左右の車輪の回転速度(センチメートル毎秒)からロボットの中心速度を計算します。
+
+- `calculate_turning_angle_velocity(left_velocity, right_velocity)`
+
+    左右の車輪の回転速度(センチメートル毎秒)からロボットの旋回角速度を計算します。
+
 #### 共有変数の内容
 
 - `state_dict["speed_left"]`
@@ -183,81 +222,117 @@
 
 #### アプリケーションからノードに送られるメッセージ
 
-アプリケーションからは次のような命令を送信できます(変更される可能性が高いです)。
+アプリケーションからは次のような命令を送信できます。
 
-- accelコマンド
+- set-speedコマンド
 
-    左右両方のモータを指定の速度まで加速させます(`command`キーに`accel`を指定)。`speed`キーに速度、`wait_time`に適当な待ち時間を設定します(待ち時間を小さくすると加速が急になります)。
-
+    左右両方のモータの速度を設定します。`command`キーには`set-speed`を指定します。`speed_left`キーに左側のモータの速度、`speed_right`キーに右側のモータの速度、`step_left`キーに左側のモータの速度のループ1回あたりの増減分、`step_right`キーに右側のモータの速度のループ1回あたりの増減分、`wait_time`キーにループ1回あたりの待ち時間(秒単位)をそれぞれ指定します。`wait_time`キーに指定する値を小さくすると、また`step_left`と`step_right`に指定する値を大きくすると、モータの速度変化は急峻になります。`step_left`、`step_right`、`wait_time`には正の値を指定してください。`speed_left`と`speed_right`は、正の値を指定すると前進、負の値を指定すると後進を意味します。
+    
     ```python
     node_manager.send_command("motor",
-        { "command": "accel", "speed": 9000, "wait_time": 0.06 })
+        { "command": "set-speed",
+          "speed_left": 9000, "speed_right": 3000,
+          "step_left": 300, "step_right": 250,
+          "wait_time": 0.05 })
     ```
-    
-    以下のように、1回のループの実行で速度が250ずつ増えるように実装されています。`wait_time`は各ループの実行後の待ち時間です。速度には250で割り切れるような値を設定してください。
+
+1回のループでの速度の増減分を`step`で始まるキーに、1回のループの実行後の待ち時間を`wait_time`キーに指定します。分かりやすく説明すると、階段の1段の高さが`step`、階段の幅が`wait_time`ということです。`set-speed`コマンドを実行すると次の`MotorNode::set_speed()`メソッドが呼び出されます。
 
     ```python
-    def accelerate(self, speed, wait_time):
-        """2つのモータを加速"""
-        
-        while self.state_dict["speed_left"] < speed:
-            self.state_dict["speed_left"] += 250
-            self.state_dict["speed_right"] += 250
+    def set_speed(self, speed_left, speed_right, step_left, step_right, wait_time):
+        """2つのモータの速度を設定(速度は階段状に変化)"""
 
-            self.motor_left.run(self.state_dict["speed_left"])
-            self.motor_right.run(-self.state_dict["speed_right"])
+        left_op = 1 if speed_left > self.state_dict["speed_left"] \
+                  else -1 if speed_left < self.state_dict["speed_left"] \
+                  else 0
+        right_op = 1 if speed_right > self.state_dict["speed_right"] \
+                   else -1 if speed_right < self.state_dict["speed_right"] \
+                   else 0
 
+        while True:
+            # モータの速度変更の終了を判定
+            left_done = \
+                self.state_dict["speed_left"] >= speed_left if left_op == 1 \
+                else self.state_dict["speed_left"] <= speed_right if left_op == -1 \
+                else True
+            right_done = \
+                self.state_dict["speed_right"] >= speed_right if right_op == 1 \
+                else self.state_dict["speed_right"] <= speed_right if right_op == -1 \
+                else True
+
+            if left_done and right_done:
+                break
+            
+            # モータの速度を段階的に変更
+            if not left_done:
+                self.state_dict["speed_left"] = \
+                    min(self.state_dict["speed_left"] + step_left, speed_left) if left_op == 1 \
+                    else max(self.state_dict["speed_left"] - step_left, speed_left) if left_op == -1 \
+                    else self.state_dict["speed_left"]
+                self.motor_left.run(self.state_dict["speed_left"])
+
+            if not right_done:
+                self.state_dict["speed_right"] = \
+                    min(self.state_dict["speed_right"] + step_right, speed_right) if right_op == 1 \
+                    else max(self.state_dict["speed_right"] - step_right, speed_right) if right_op == -1 \
+                    else self.state_dict["speed_right"]
+                self.motor_right.run(self.state_dict["speed_right"])
+            
             time.sleep(wait_time)
     ```
 
-- accel-leftコマンド
 
-    左側のモータを指定の速度まで回転させます(`command`キーに`accel-left`を指定)。速度には250で割り切れるような値を設定してください。
+- set-left-speedコマンド
+
+    左側のモータの速度を設定します。`command`キーには`set-left-speed`を指定します。`speed`キーにモータの速度、`step`キーにループ1回あたりの増減分、`wait_time`キーにループ1回あたりの待ち時間をそれぞれ指定します。`step`と`wait_time`には正の値を指定してください。`speed`は正の値を指定すると前進、負の値を指定すると後進を意味します。
 
     ```python
     node_manager.send_command("motor",
-        { "command": "accel-left", "speed": 9000, "wait_time": 0.06 })
+        { "command": "set-left-speed",
+          "speed": 9000, "step": 300, "wait_time": 0.06 })
     ```
 
-- accel-rightコマンド
+- set-right-speedコマンド
 
-    右側のモータを指定の速度まで回転させます(`command`キーに`accel-right`を指定)。速度には250で割り切れるような値を設定してください。
+    右側のモータの速度を設定します。`command`キーには`set-right-speed`を指定します。`speed`キーにモータの速度、`step`キーにループ1回あたりの増減分、`wait_time`キーにループ1回あたりの待ち時間をそれぞれ指定します。`step`と`wait_time`には正の値を指定してください。`speed`は正の値を指定すると前進、負の値を指定すると後進を意味します。
 
     ```python
     node_manager.send_command("motor",
-        { "command": "accel-right", "speed": 9000, "wait_time": 0.06 })
+        { "command": "set-right-speed",
+          "speed": 3000, "step": 250, "wait_time": 0.03 })
     ```
 
-- brakeコマンド
+- set-speed-immコマンド
 
-    左右両方のモータを指定の速度まで減速させます(`command`キーに`brake`を指定)。速度には250で割り切れるような値を設定してください。
+    左右両方のモータの速度を設定します。`command`キーには`set-speed-imm`を指定します(immはimmediateの略です)。set-speedのように徐々に速度を変化させていくのではなく、直ちに指定された速度に変更します。`speed_left`キーには左側のモータの速度、`speed_right`には右側のモータの速度を指定します。
 
     ```python
     node_manager.send_command("motor",
-        { "command": "brake", "speed": 3000, "wait_time": 0.06 })
+        { "command": "set-speed-imm",
+          "speed_left": 9000, "speed_right": 3000 })
     ```
 
-- brake-leftコマンド
+- set-left-speed-immコマンド
 
-    左側のモータを指定の速度まで減速させます(`command`キーに`brake-left`を指定)。速度には250で割り切れるような値を設定してください。
+    左側のモータの速度を設定します。`command`キーには`set-left-speed-imm`を指定します。set-left-speedのように徐々に速度を変化させていくのではなく、直ちに指定された速度に変更します。`speed`キーにモータの速度を指定します。
 
     ```python
     node_manager.send_command("motor",
-        { "command": "brake-left", "speed": 3000, "wait_time": 0.06 })
+        { "command": "set-left-speed-imm", "speed": 9000 })
     ```
 
-- brake-rightコマンド
+- set-right-speed-immコマンド
 
-    右側のモータを指定の速度まで減速させます(`command`キーに`brake-right`を指定)。速度には250で割り切れるような値を設定してください。
+    右側のモータの速度を設定します。`command`キーには`set-right-speed-imm`を指定します。set-right-speedのように徐々に速度を変化させていくのではなく、直ちに指定された速度に変更します。`speed`キーにモータの速度を指定します。
 
     ```python
     node_manager.send_command("motor",
-        { "command": "brake-right", "speed": 3000, "wait_time": 0.06 })
+        { "command": "set-right-speed-imm", "speed": 3000 })
     ```
 
 - stopコマンド
 
-    両側のモータの速度を0にてロボットを止めます(`command`キーに`stop`を指定)。
+    両側のモータの速度を0にしてロボットを止めます。`command`キーに`stop`を指定します。
 
     ```python
     node_manager.send_command("motor", { "command": "stop" })
@@ -265,18 +340,39 @@
 
 - endコマンド
 
-    モータの使用を停止します。このコマンドを実行すると、他のコマンドをモータに送信してもモータは動かなくなります。
+    モータの使用を停止します。このコマンドを実行した後は、他のコマンドをモータに送信しても作動しません。
 
     ```python
     node_manager.send_command("motor", { "command": "end" })
     ```
 
-- rotateコマンド
+- waitコマンド
 
-    ロボットが停止した状態から時計回り、半時計回りに90度回転します。ロボットの走行時にはこのコマンドを使用してはいけません。`command`キーに`rotate`を指定し、`direction`キーには`left`(半時計回り)または`right`(時計回り)を指定します。`wait_time`キーに待ち時間を設定した場合、値を大きくすると回転量が大きく、値を小さくすると回転量が小さくなるので、回転量を微調節することができます。`wait_time`キーを使用しない場合は既定値(1.5秒)が利用されます。
+    モータの状態を指定された時間だけ一定に保ちます。ロボットを一定の速度で走行させたい場合に使用します。内部では`time.sleep()`メソッドを呼び出して、モータを操作するプロセスの実行を一時的に止めています。`command`キーには`wait`を指定します。`seconds`キーに待ち時間を指定します。
 
     ```python
-    node_manager.send_command("motor", { "command": "rotate", "direction": "left" })
+    node_manager.send_command("motor", { "command": "wait", "seconds": 3.0 })
+    ```
+
+- sequentialコマンド
+
+    複数のコマンドを連続実行させます。コマンドの実行開始時と、全てのコマンドの実行終了時にメッセージがノードから送出されます。個々のコマンドの実行開始時と実行終了時にはメッセージは送出されません。`command`キーには`sequential`を、`sequential`キーには上記のコマンドのリスト(タプルでも可能)をそれぞれ指定します。以下のようなコマンドを送信すると、ロボットはある速度に達するまで徐々に加速した後、3秒間一定の速度で走行し、左にカーブし、続いて右にカーブし、最後に徐々に減速して停止します。
+
+    ```python
+    node_manager.send_command("motor",
+        { "command": "sequential",
+          "sequence": [
+            { "command": "set-speed", "speed_left": 9000, "speed_right": 9000,
+              "step_left": 100, "step_right": 100, "wait_time": 0.05 },
+            { "command": "wait", "seconds": 3.0 },
+            { "command": "set-left-speed", "speed": 3000, "step": 100, "wait_time": 0.02 },
+            { "command": "set-left-speed", "speed": 9000, "step": 100, "wait_time": 0.02 },
+            { "command": "set-right-speed", "speed": 1500, "step": 500, "wait_time": 0.03 },
+            { "command": "set-right-speed", "speed": 9000, "step": 300, "wait_time": 0.03 },
+            { "command": "set-speed", "speed_left": 0, "speed_right": 0,
+              "step_left": 100, "step_right": 100, "wait_time": 0.05 }
+          ]
+        })
     ```
 
 #### ノードからアプリケーションに送られるメッセージ
@@ -299,7 +395,7 @@
     { "sender": "motor", "content": { "command": (実行されたコマンド名), "state": "done" } }
     ```
 
-アプリケーションからは次のようにしてメッセージを取得できます。
+アプリケーションからは次のようにしてメッセージを取得できます。アプリケーションでは`get()`メソッドではなく、`get_nowait()`メソッドを使用してください。
 
 ```python
 msg_queue = node_manager.get_msg_queue()
@@ -422,12 +518,54 @@ while True:
 
 #### アプリケーションからノードに送られるメッセージ
 
-- 音声合成の実行
+- 音声ファイルの実行(ファイル名を指定)
 
-    `sentence`キーで指定された文章を喋らせます。
+    `file_name`キーで指定された音声ファイルを`aplay --quiet`コマンドにより実行します。音声ファイルは、`audio`ディレクトリ(`robot_lib`と同じ階層)の中に保存されている必要があります。こちらのメッセージの利用を推奨します。
+    
+    ```python
+    node_manager.send_command("openjtalk", { "file_name": "hello.wav" })
+    ```
+
+- 音声合成の実行(文章を指定)
+
+    `sentence`キーで指定された文章を喋らせます。予め用意されたスクリプトファイル(`scripts/openjtalk-start.sh`)を実行して、最初に`openjtalk`コマンドにより`sentence`キーで指定された文章から音声ファイルを生成します。次に、生成されたファイルを`aplay --quiet`コマンドにより再生します。音声合成にある程度の時間(2、3秒)が掛かるため、音声合成の命令の発行から、音声ファイルの再生にまでタイムラグが生じます。ファイル名を直接指定した方が、命令の発行から音声ファイルの再生までに要する時間が短いため、リアルタイム性がより高くなります(例えば、ロボットと会話するアプリケーションでは反応が早くなります)。
 
     ```python
     node_manager.send_command("openjtalk", { "sentence": "こんにちは" })
+    ```
+
+#### ノードからアプリケーションに送られるメッセージ
+
+- 音声ファイルの実行開始
+
+指定された音声ファイルの再生が開始したことを表します。
+
+    ```python
+    { "file_name": (再生された音声ファイル名), "state": "start" }
+    ```
+
+- 音声ファイルの実行終了
+
+指定された音声ファイルの再生が終了したことを表します。
+
+    ```python
+    { "file_name": (再生された音声ファイル名), "state": "done" }
+    ```
+
+- 音声合成の開始
+
+指定された文章の合成が開始したことを表します。
+
+    ```python
+    { "sentence": (指定された文章), "state": "start" }
+    ```
+
+- 音声合成の終了
+
+指定された文章の合成と音声ファイルの再生が終了したことを表します。
+
+    ```python
+    { "sentence": (指定された文章), "state": "done" }
     ```
 
 ### `GoogleSpeechApiNode`クラス
