@@ -155,6 +155,7 @@ class NodeManager(object):
         # 超音波センサのノードを作成
         self.__srf02_node = Srf02Node(
             self.__process_manager, self.__msg_queue, self.__srf02,
+            config_dict["distance_threshold"],
             config_dict["near_obstacle_threshold"],
             config_dict["interval"], config_dict["addr_list"])
 
@@ -164,13 +165,9 @@ class NodeManager(object):
     def __setup_julius_node(self, config_dict):
         """音声認識エンジンJuliusのノードを初期化"""
 
-        # 音声認識エンジンJuliusを開始するスクリプトのパスを設定
-        file_dir = pathlib.Path(os.path.dirname(os.path.abspath(__file__)))
-        script_path = file_dir.parent.joinpath("scripts", "julius-start.sh")
-
         # 音声認識エンジンJuliusのノードを初期化
         self.__julius_node = JuliusNode(
-            self.__process_manager, self.__msg_queue, str(script_path))
+            self.__process_manager, self.__msg_queue)
 
         # 音声認識エンジンJuliusのノードを追加
         self.__add_data_sender_node("julius", self.__julius_node)
@@ -178,13 +175,8 @@ class NodeManager(object):
     def __setup_openjtalk_node(self, config_dict):
         """音声合成システムOpenJTalkのノードを初期化"""
 
-        # 音声合成システムOpenJTalkを開始するスクリプトのパスを設定
-        file_dir = pathlib.Path(os.path.dirname(os.path.abspath(__file__)))
-        script_path = file_dir.parent.joinpath("scripts", "openjtalk-start.sh")
-
         # 音声合成システムOpenJTalkのノードを初期化
-        self.__openjtalk_node = OpenJTalkNode(
-            self.__process_manager, self.__msg_queue, str(script_path))
+        self.__openjtalk_node = OpenJTalkNode(self.__process_manager, self.__msg_queue)
 
         # 音声合成システムOpenJTalkのノードを追加
         self.__add_command_receiver_node("openjtalk", self.__openjtalk_node)

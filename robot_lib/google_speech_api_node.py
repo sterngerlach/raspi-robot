@@ -161,7 +161,7 @@ class GoogleSpeechApiNode(DataSenderNode):
                                     result_msg["direction"] = (direction, confidence)
 
                             # 認識した語彙に命令が含まれる場合
-                            for command in ("進め", "ブレーキ", "ストップ", "黙れ", "曲がれ"):
+                            for command in ("進め", "すすめ", "ブレーキ", "ストップ", "黙れ", "曲がれ"):
                                 if command in transcript:
                                     result_msg["command"] = (command, confidence)
 

@@ -2,6 +2,8 @@
 # julius_node.py
 
 import multiprocessing as mp
+import os
+import pathlib
 import socket
 import subprocess as sp
 import time
@@ -20,14 +22,16 @@ class JuliusNode(DataSenderNode):
     # Juliusサーバが使用するポート番号
     JULIUS_SERVER_PORT = 10500
 
-    def __init__(self, process_manager, msg_queue,
-                 julius_startup_script_path):
+    def __init__(self, process_manager, msg_queue):
         """コンストラクタ"""
         super().__init__(process_manager, msg_queue)
 
+        file_dir = pathlib.Path(os.path.dirname(os.path.abspath(__file__)))
+
         # Juliusをモジュールモードで起動
+        julius_startup_script_path = file_dir.parent.joinpath("scripts", "julius-start.sh")
         self.julius_process = sp.Popen(
-            [julius_startup_script_path], stdout=sp.PIPE, shell=True)
+            [str(julius_startup_script_path)], stdout=sp.PIPE, shell=True)
 
         # JuliusのプロセスIDを取得
         self.julius_pid = str(self.julius_process.stdout.read().decode("utf-8"))

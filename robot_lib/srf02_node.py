@@ -12,7 +12,8 @@ class Srf02Node(DataSenderNode):
     """
 
     def __init__(self, process_manager, msg_queue,
-                 srf02, near_obstacle_threshold=15,
+                 srf02, distance_threshold=15,
+                 near_obstacle_threshold=5,
                  interval=0.5, addr_list=[0x70]):
         """コンストラクタ"""
         super().__init__(process_manager, msg_queue)
@@ -20,6 +21,8 @@ class Srf02Node(DataSenderNode):
         # 超音波センサ(Srf02)
         self.srf02 = srf02
         # 障害物に接近したと判定する距離の閾値
+        self.distance_threshold = distance_threshold
+        # 測定値を連続何回下回ったときに障害物の接近を判断するか
         self.near_obstacle_threshold = near_obstacle_threshold
         # 超音波センサの値を取得する間隔
         self.interval = interval
@@ -51,18 +54,18 @@ class Srf02Node(DataSenderNode):
                     if self.state_dict[addr] is None:
                         self.state_dict[addr] = {
                             "dist": dist, "mindist": mindist,
-                            "near": 1 if dist <= self.near_obstacle_threshold else 0 }
+                            "near": 1 if dist <= self.distance_threshold else 0 }
                     else:
                         # 指数移動平均により計測値を平滑化
                         dist = self.state_dict[addr]["dist"] * self.smoothing_coeff + \
                             dist * (1.0 - self.smoothing_coeff)
                         # 何回連続して障害物に接近したと判定されているか
                         near = self.state_dict[addr]["near"] + 1 \
-                            if dist <= self.near_obstacle_threshold else 0
+                            if dist <= self.distance_threshold else 0
                         self.state_dict[addr] = { "dist": dist, "mindist": mindist, "near": near }
                         
                         # 5回以上連続して障害物の接近と判定された場合
-                        if near >= 5:
+                        if near >= self.near_obstacle_threshold:
                             # アプリケーションにメッセージを送出
                             self.send_message("srf02", { "addr": addr, "state": "obstacle-detected" })
 
