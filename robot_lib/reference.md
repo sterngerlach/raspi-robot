@@ -236,7 +236,7 @@
           "wait_time": 0.05 })
     ```
 
-1回のループでの速度の増減分を`step`で始まるキーに、1回のループの実行後の待ち時間を`wait_time`キーに指定します。分かりやすく説明すると、階段の1段の高さが`step`、階段の幅が`wait_time`ということです。`set-speed`コマンドを実行すると次の`MotorNode::set_speed()`メソッドが呼び出されます。
+    1回のループでの速度の増減分を`step`で始まるキーに、1回のループの実行後の待ち時間を`wait_time`キーに指定します。分かりやすく説明すると、階段の1段の高さが`step`、階段の幅が`wait_time`ということです。`set-speed`コマンドを実行すると次の`MotorNode::set_speed()`メソッドが呼び出されます。
 
     ```python
     def set_speed(self, speed_left, speed_right, step_left, step_right, wait_time):
