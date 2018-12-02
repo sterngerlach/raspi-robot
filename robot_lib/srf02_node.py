@@ -30,6 +30,8 @@ class Srf02Node(DataSenderNode):
         self.addr_list = addr_list
         # 指数移動平均のパラメータ(平滑化係数)
         self.smoothing_coeff = 0.75
+        # 距離の最大値
+        self.max_distance = 50
 
         # 各アドレスに対応する超音波センサの情報を初期化
         for addr in self.addr_list:
@@ -49,6 +51,9 @@ class Srf02Node(DataSenderNode):
 
                     # 測距データと最小の距離を取得
                     dist, mindist = result
+
+                    # 測距データを適当な範囲に収める
+                    dist = max(min(dist, self.max_distance), mindist)
 
                     # 各アドレスの超音波センサの情報を更新
                     if self.state_dict[addr] is None:
