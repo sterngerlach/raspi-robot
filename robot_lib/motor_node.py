@@ -64,15 +64,26 @@ class MotorNode(CommandReceiverNode):
                 # 命令の実行開始をアプリケーションに伝達
                 self.send_message("motor", { "command": cmd["command"], "state": "start" })
                 
-                # 複数のコマンドを連続実行させる場合
-                if cmd["command"] == "sequential":
-                    # 各コマンドを順番に実行
-                    for single_cmd in cmd["sequence"]:
-                        self.execute_command(single_cmd)
-                
-                # 命令の実行終了をアプリケーションに伝達
-                self.send_message("motor", { "command": cmd["command"], "state": "done" })
+                try:
+                    # 複数のコマンドを連続実行させる場合
+                    if cmd["command"] == "sequential":
+                        # 各コマンドを順番に実行
+                        for single_cmd in cmd["sequence"]:
+                            self.execute_command(single_cmd)
+                    else:
+                        # 指定されたコマンドを実行
+                        self.execute_command(cmd)
 
+                    # 命令の実行終了をアプリケーションに伝達
+                    self.send_message("motor", { "command": cmd["command"], "state": "done" })
+                except (KeyError, ValueError, UnknownCommandException) as e:
+                    print("MotorNode::process_command(): exception was thrown: {0}"
+                          .format(e))
+                    print("MotorNode::process_command(): operation was ignored")
+
+                    # 命令が無視されたことをアプリケーションに伝達
+                    self.send_message("motor", { "command": cmd["command"], "state": "ignored" })
+                
                 # モータへの命令が完了
                 self.command_queue.task_done()
         
@@ -103,6 +114,18 @@ class MotorNode(CommandReceiverNode):
         elif cmd["command"] == "set-right-speed-imm":
             # 右側のモータの速度を設定(即変更)
             self.set_right_speed_immediately(cmd["speed"])
+        elif cmd["command"] == "move-distance":
+            # 現在の速度を保った状態で, 指定された距離(センチメートル)を移動
+            self.move_distance(cmd["distance"])
+        elif cmd["command"] == "rotate0":
+            # ロボットの中心速度, 旋回半径, 旋回角度を指定して回転
+            self.rotate0(cmd["center_velocity"], cmd["turning_radius"], cmd["turning_angle"])
+        elif cmd["command"] == "rotate1":
+            # ロボットの中心速度, 旋回角度, 時間を指定して回転
+            self.rotate1(cmd["center_velocity"], cmd["turning_angle"], cmd["rotate_time"])
+        elif cmd["command"] == "rotate2":
+            # 現在の速度を保った状態で, ロボットの旋回角度を指定して回転
+            self.rotate2(cmd["turning_angle"])
         elif cmd["command"] == "wait":
             # 指定された時間だけ待機
             time.sleep(cmd["seconds"])
@@ -147,18 +170,28 @@ class MotorNode(CommandReceiverNode):
         return self.convert_steps_per_second_to_speed(
             revolutions_per_second * self.steps_per_revolution)
 
-    def calculate_turning_radius(self, left_velocity, right_velocity):
-        """左右の車輪の回転速度(センチメートル毎秒)からロボットの旋回半径を計算"""
+    def calculate_turning_angle_velocity(self, left_velocity, right_velocity):
+        """左右の車輪の回転速度(センチメートル毎秒)からロボットの旋回角速度を計算"""
         return (right_velocity - left_velocity) / self.distance_between_wheels
 
     def calculate_center_velocity(self, left_velocity, right_velocity):
         """左右の車輪の回転速度(センチメートル毎秒)からロボットの中心速度を計算"""
         return (right_velocity + left_velocity) / 2.0
 
-    def calculate_turning_angle_velocity(self, left_velocity, right_velocity):
-        """左右の車輪の回転速度(センチメートル毎秒)からロボットの旋回角速度を計算"""
-        return (self.distance_between_wheels / 2) * \
+    def calculate_turning_radius(self, left_velocity, right_velocity):
+        """左右の車輪の回転速度(センチメートル毎秒)からロボットの旋回半径を計算"""
+        return (self.distance_between_wheels / 2.0) * \
             (right_velocity + left_velocity) / (right_velocity - left_velocity)
+
+    def calculate_left_velocity(self, turning_radius, turning_angle_velocity):
+        """ロボットの旋回半径と旋回角速度から左の車輪の回転速度(センチメートル毎秒)を計算"""
+        return (turning_radius - self.distance_between_wheels / 2.0) * \
+            turning_angle_velocity
+
+    def calculate_right_velocity(self, turning_radius, turning_angle_velocity):
+        """ロボットの旋回半径と旋回角速度から右の車輪の回転速度(センチメートル毎秒)を計算"""
+        return (turning_radius + self.distance_between_wheels / 2.0) * \
+            turning_angle_velocity
 
     def set_speed(self, speed_left, speed_right, step_left, step_right, wait_time):
         """2つのモータの速度を設定(速度は階段状に変化)"""
@@ -285,6 +318,101 @@ class MotorNode(CommandReceiverNode):
     def set_right_speed_immediately(self, speed):
         """右側のモータの速度を設定(即変更)"""
         self.set_single_motor_speed_immediately("right", speed)
+    
+    def move_distance(self, distance):
+        """現在の速度を保った状態で, 指定された距離(センチメートル)を移動"""
+        # 左右の車輪の回転速度(センチメートル毎秒)を計算
+        left_velocity = self.convert_speed_to_centimeters_per_second(
+            self.state_dict["speed_left"])
+        right_velocity = self.convert_speed_to_centimeters_per_second(
+            self.state_dict["speed_right"])
+        # ロボットの中心速度(センチメートル毎秒)を計算
+        center_velocity = self.calculate_center_velocity(
+            left_velocity, right_velocity)
+        # 所要時間を計算
+        required_time = distance / center_velocity
+        
+        time.sleep(required_time)
+
+    def rotate0(self, center_velocity, turning_radius, turning_angle):
+        """ロボットの中心速度, 旋回半径, 旋回角度を指定して回転"""
+        # 命令の実行前の左右のモータの速度を保存
+        left_speed_0 = self.state_dict["speed_left"]
+        right_speed_0 = self.state_dict["speed_right"]
+
+        # ロボットの旋回角速度(ラジアン毎秒)を計算
+        turning_angle_velocity = center_velocity / turning_radius
+        # 回転に必要な時間を計算
+        rotate_time = self.radians(turning_angle) / turning_angle_velocity
+        # 左右の車輪の回転速度(センチメートル毎秒)を計算
+        left_velocity = (turning_radius - self.distance_between_wheels / 2.0) * \
+            turning_angle_velocity
+        right_velocity = (turning_radius + self.distance_between_wheels / 2.0) * \
+            turning_angle_velocity
+        # 左右のモータの速度を計算
+        left_speed = self.convert_centimeters_per_second_to_speed(left_velocity)
+        right_speed = self.convert_centimeters_per_second_to_speed(right_velocity)
+
+        self.set_speed_immediately(left_speed, right_speed)
+        time.sleep(rotate_time)
+        self.set_speed_immediately(left_speed_0, right_speed_0)
+    
+    def rotate1(self, center_velocity, turning_angle, rotate_time):
+        """ロボットの中心速度, 旋回角度, 時間を指定して回転"""
+        # 命令の実行前の左右のモータの速度を保存
+        left_speed_0 = self.state_dict["speed_left"]
+        right_speed_0 = self.state_dict["speed_right"]
+
+        # ロボットの旋回角速度(ラジアン毎秒)を計算
+        turning_angle_velocity = self.radians(turning_angle) / rotate_time
+        # ロボットの旋回半径(センチメートル)を計算
+        turning_radius = center_velocity / turning_angle_velocity
+        # 左右の車輪の回転速度(センチメートル毎秒)を計算
+        left_velocity = (turning_radius - self.distance_between_wheels / 2.0) * \
+            turning_angle_velocity
+        right_velocity = (turning_radius + self.distance_between_wheels / 2.0) * \
+            turning_angle_velocity
+        # 左右のモータの速度を計算
+        left_speed = self.convert_centimeters_per_second_to_speed(left_velocity)
+        right_speed = self.convert_centimeters_per_second_to_speed(right_velocity)
+
+        self.set_speed_immediately(left_speed, right_speed)
+        time.sleep(rotate_time)
+        self.set_speed_immediately(left_speed_0, right_speed_0)
+
+    def rotate2(self, turning_angle):
+        """現在の速度を保った状態で, ロボットの旋回角度を指定して回転"""
+        # 左右の速度が殆ど同じ場合は回転できない
+        diff = math.abs(self.state_dict["speed_left"] - self.state_dict["speed_right"]) 
+
+        if diff< 500:
+            raise ValueError(
+                "MotorNode::rotate2(): " +
+                "absolute difference of the left and right speed must be greater than 500: " +
+                "absolute difference was {0}"
+                .format(diff))
+
+        # 左右の車輪の回転速度(センチメートル毎秒)を計算
+        left_velocity = self.convert_speed_to_centimeters_per_second(
+            self.state_dict["speed_left"])
+        right_velocity = self.convert_speed_to_centimeters_per_second(
+            self.state_dict["speed_right"])
+        # ロボットの旋回角速度(ラジアン毎秒)を計算
+        turning_angle_velocity = self.calculate_turning_angle_velocity(
+            left_velocity, right_velocity)
+        # 所要時間を計算
+        rotate_time = self.radians(turning_angle) / turning_angle_velocity
+
+        # 所要時間が長過ぎる場合は回転できない
+        if rotate_time > 60.0:
+            raise ValueError(
+                "MotorNode::rotate2(): " +
+                "estimated time to complete the operation must be shorter than 60 seconds: "  +
+                "estimated time was {0} seconds"
+                .format(rotate_time))
+        
+        # 現在の速度を保った状態で回転
+        time.sleep(rotate_time)
 
     def stop(self):
         """2つのモータを停止"""
