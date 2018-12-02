@@ -31,7 +31,8 @@ class FollowHumanFaceApp(object):
             "enable_webcam": True,
             "motor": {},
             "srf02": {
-                "near_obstacle_threshold": 15,
+                "distance_threshold": 15,
+                "near_obstacle_threshold": 10,
                 "interval": 0.25,
                 "addr_list": [0x70]
             },
@@ -72,8 +73,7 @@ class FollowHumanFaceApp(object):
 
                 # アプリケーションを終了
                 if self.__app_exit:
-                    self.__talk("じゃあね")
-                    self.__openjtalk_node.wait_until_all_command_done()
+                    self.__aplay("bye.wav")
                     break
 
                 # モータが命令を実行中である場合は顔検出を行わない
@@ -84,6 +84,7 @@ class FollowHumanFaceApp(object):
                 # 検出された顔を元にモータへの命令を決定
                 if not "faces" in self.__webcam_state:
                     # 適当な時間だけ待機
+                    time.sleep(0.1)
                     continue
 
                 faces = self.__webcam_state["faces"]
@@ -100,21 +101,42 @@ class FollowHumanFaceApp(object):
                 
                 # キャプチャされた画像内の顔の中心位置によって進行方向を決定
                 if center_x < self.__webcam_capture_width / 5 * 2:
-                    self.__talk("左に曲がります")
-                    self.__send_motor_command(
-                        { "command": "accel-right", "speed": 12000, "wait_time": 0.06 })
-                    self.__send_motor_command(
-                        { "command": "brake-right", "speed": 9000, "wait_time": 0.06 })
+                    self.__aplay("rotate-left.wav")
+                    self.__send_motor_command({
+                        "command": "sequential",
+                        "sequence": [
+                            { "command": "set-speed",
+                              "speed_left": 9000, "speed_right": 9000,
+                              "step_left": 300, "step_right": 300,
+                              "wait_time": 0.05 },
+                            { "command": "set-right-speed",
+                              "speed": 12000, "step": 150, "wait_time": 0.03 },
+                            { "command": "set-right-speed",
+                              "speed": 9000, "step": 150, "wait_time": 0.03 }
+                         ]
+                    })
                 elif center_x > self.__webcam_capture_width / 5 * 3:
-                    self.__talk("右に曲がります")
-                    self.__send_motor_command(
-                        { "command": "accel-left", "speed": 12000, "wait_time": 0.06 })
-                    self.__send_motor_command(
-                        { "command": "brake-left", "speed": 9000, "wait_time": 0.06 })
+                    self.__aplay("rotate-right.wav")
+                    self.__send_motor_command({
+                        "command": "sequential",
+                        "sequence": [
+                            { "command": "set-speed",
+                              "speed_left": 9000, "speed_right": 9000,
+                              "step_left": 300, "step_right": 300,
+                              "wait_time": 0.05 },
+                            { "command": "set-left-speed",
+                              "speed": 12000, "step": 150, "wait_time": 0.03 },
+                            { "command": "set-left-speed",
+                              "speed": 9000, "step": 150, "wait_time": 0.03 }
+                         ]
+                    })
                 else:
-                    self.__talk("直進します")
-                    self.__send_motor_command(
-                        { "command": "accel", "speed": 9000, "wait_time": 0.02 })
+                    self.__aplay("go-straight.wav")
+                    self.__send_motor_command({
+                        "command": "set-speed",
+                        "speed_left": 9000, "speed_right": 9000,
+                        "step_left": 300, "step_right": 300,
+                        "wait_time": 0.05 })
 
         except KeyboardInterrupt:
             # プロセスが割り込まれた場合
@@ -135,7 +157,10 @@ class FollowHumanFaceApp(object):
     def __talk(self, sentence):
         """音声合成エンジンOpenJTalkで指定された文章を話す"""
         self.__node_manager.send_command("openjtalk", { "sentence": sentence })
-        self.__node_manager.get_node("openjtalk").wait_until_all_command_done()
+
+    def __aplay(self, file_name):
+        """指定された音声ファイルを再生"""
+        self.__node_manager.send_command("openjtalk", { "file_name": file_name })
 
     def __send_motor_command(self, cmd):
         """モータに指定された命令を送信"""
@@ -147,6 +172,9 @@ class FollowHumanFaceApp(object):
         if msg_content["state"] == "start":
             # モータは命令を実行中である
             self.__is_motor_executing = True
+        elif msg_content["state"] == "ignored":
+            # モータは命令を実行中でない
+            self.__is_motor_executing = False
         elif msg_content["state"] == "done":
             # ロボットはまだ左右に曲がっている途中
             if msg_content["command"] == "accel-right" or \
@@ -171,7 +199,7 @@ class FollowHumanFaceApp(object):
             self.__motor_node.stop()
             
             # 障害物を検知したことをユーザに知らせる
-            self.__talk("ぶつかる")
+            self.__aplay("obstacle-detected.wav")
 
             # モータは命令を実行中でない
             self.__is_motor_executing = False
@@ -184,7 +212,7 @@ class FollowHumanFaceApp(object):
 
         # モータが命令を実行中であれば無視
         if self.__is_motor_executing:
-            self.__talk("今は無理です")
+            self.__aplay("wait-a-moment.wav")
             return
 
         # 認識語彙が命令ではない場合は無視
@@ -207,7 +235,7 @@ class FollowHumanFaceApp(object):
             # モータの利用を停止
             self.__send_motor_command({ "command": "end" })
         else:
-            self.__talk("えっ、何?")
+            self.__aplay("unknown-command.wav")
 
 def main():
     # アプリケーションのインスタンスを作成
