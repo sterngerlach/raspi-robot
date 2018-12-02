@@ -592,7 +592,7 @@ while True:
 
 - 音声ファイルの実行(ファイル名を指定)
 
-    `file_name`キーで指定された音声ファイルを`aplay --quiet`コマンドにより実行します。音声ファイルは、`audio`ディレクトリ(`robot_lib`と同じ階層)の中に保存されている必要があります。こちらのメッセージの利用を推奨します。
+    `file_name`キーで指定された音声ファイルを`aplay --quiet`コマンドにより実行します。音声ファイルは、`audio`ディレクトリ(`robot_lib`と同じ階層)の中に保存されている必要があります。**こちらのメッセージの利用を推奨します**。
     
     ```python
     node_manager.send_command("openjtalk", { "file_name": "hello.wav" })
