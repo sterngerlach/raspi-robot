@@ -126,6 +126,12 @@ class MotorNode(CommandReceiverNode):
         elif cmd["command"] == "rotate2":
             # 現在の速度を保った状態で, ロボットの旋回角度を指定して回転
             self.rotate2(cmd["turning_angle"])
+        elif cmd["command"] == "pivot-turn":
+            # ロボットの信地旋回を行う(左のモータを停止)
+            self.pivot_turn(cmd["turning_angle"], cmd["rotate_time"])
+        elif cmd["command"] == "spin-turn":
+            # ロボットの超信地旋回を行う(左右のモータを互いに等速逆回転)
+            self.spin_turn(cmd["turning_angle"], cmd["rotate_time"])
         elif cmd["command"] == "wait":
             # 指定された時間だけ待機
             time.sleep(cmd["seconds"])
@@ -321,6 +327,16 @@ class MotorNode(CommandReceiverNode):
     
     def move_distance(self, distance):
         """現在の速度を保った状態で, 指定された距離(センチメートル)を移動"""
+        if self.state_dict["speed_left"] == 0 and self.state_dict["speed_right"] == 0:
+            raise ValueError("MotorNode::move_distance(): " +
+                             "at least one motor must be rotating")
+        
+        # 左右のモータの速度が同符号でない場合は例外を送出
+        if (self.state_dict["speed_left"] > 0 and self.state_dict["speed_right"] < 0) or
+            (self.state_dict["speed_left"] < 0 and self.state_dict["speed_right"] > 0):
+            raise ValueError("MotorNode::move_distance(): " +
+                             "the left and right speed should have the same sign")
+
         # 左右の車輪の回転速度(センチメートル毎秒)を計算
         left_velocity = self.convert_speed_to_centimeters_per_second(
             self.state_dict["speed_left"])
@@ -329,13 +345,17 @@ class MotorNode(CommandReceiverNode):
         # ロボットの中心速度(センチメートル毎秒)を計算
         center_velocity = self.calculate_center_velocity(
             left_velocity, right_velocity)
-        # 所要時間を計算
-        required_time = distance / center_velocity
+        # 所要時間を計算(負の速度を考慮)
+        required_time = math.abs(distance / center_velocity)
         
         time.sleep(required_time)
 
     def rotate0(self, center_velocity, turning_radius, turning_angle):
         """ロボットの中心速度, 旋回半径, 旋回角度を指定して回転"""
+        if turning_radius <= 0:
+            raise ValueError("MotorNode::rotate0(): " +
+                             "the argument 'turning_radius' must be positive")
+
         # 命令の実行前の左右のモータの速度を保存
         left_speed_0 = self.state_dict["speed_left"]
         right_speed_0 = self.state_dict["speed_right"]
@@ -355,10 +375,16 @@ class MotorNode(CommandReceiverNode):
 
         self.set_speed_immediately(left_speed, right_speed)
         time.sleep(rotate_time)
+
+        # 以前の速度を復元
         self.set_speed_immediately(left_speed_0, right_speed_0)
     
     def rotate1(self, center_velocity, turning_angle, rotate_time):
         """ロボットの中心速度, 旋回角度, 時間を指定して回転"""
+        if rotate_time <= 0:
+            raise ValueError("MotorNode::rotate1(): " +
+                             "the argument 'rotate_time' must be positive")
+
         # 命令の実行前の左右のモータの速度を保存
         left_speed_0 = self.state_dict["speed_left"]
         right_speed_0 = self.state_dict["speed_right"]
@@ -378,14 +404,22 @@ class MotorNode(CommandReceiverNode):
 
         self.set_speed_immediately(left_speed, right_speed)
         time.sleep(rotate_time)
+
+        # 以前の速度を復元
         self.set_speed_immediately(left_speed_0, right_speed_0)
 
     def rotate2(self, turning_angle):
         """現在の速度を保った状態で, ロボットの旋回角度を指定して回転"""
+        # 左右のモータの速度が同符号でない場合は例外を送出
+        if (self.state_dict["speed_left"] > 0 and self.state_dict["speed_right"] < 0) or
+            (self.state_dict["speed_left"] < 0 and self.state_dict["speed_right"] > 0):
+            raise ValueError("MotorNode::rotate2(): " +
+                             "the left and right speed should have the same sign")
+
         # 左右の速度が殆ど同じ場合は回転できない
         diff = math.abs(self.state_dict["speed_left"] - self.state_dict["speed_right"]) 
 
-        if diff< 500:
+        if diff < 500:
             raise ValueError(
                 "MotorNode::rotate2(): " +
                 "absolute difference of the left and right speed must be greater than 500: " +
@@ -413,6 +447,50 @@ class MotorNode(CommandReceiverNode):
         
         # 現在の速度を保った状態で回転
         time.sleep(rotate_time)
+
+    def pivot_turn(self, turning_angle, rotate_time):
+        """ロボットの信地旋回を行う(左のモータを停止)"""
+        if rotate_time <= 0:
+            raise ValueError("MotorNode::pivot_turn(): " +
+                             "the argument 'rotate_time' must be positive")
+
+        # 命令の実行前の左右のモータの速度を保存
+        left_speed_0 = self.state_dict["speed_left"]
+        right_speed_0 = self.state_dict["speed_right"]
+
+        # 右側の車輪の回転速度(センチメートル毎秒)を計算
+        right_velocity = self.radians(turning_angle) * self.distance_between_wheels / rotate_time
+        # モータの速度に変換
+        right_speed = self.convert_centimeters_per_second_to_speed(right_velocity)
+
+        # 右側の車輪の速度を設定(左側の車輪は停止)
+        self.set_speed_immediately(0, right_speed)
+        time.sleep(rotate_time)
+
+        # 以前の速度を復元
+        self.set_speed_immediately(left_speed_0, right_speed_0)
+
+    def spin_turn(self, turning_angle, rotate_time):
+        """ロボットの超信地旋回を行う(左右のモータを互いに等速逆回転)"""
+        if rotate_time <= 0:
+            raise ValueError("MotorNode::spin_turn(): " +
+                             "the argument 'rotate_time' must be positive")
+
+        # 命令の実行前の左右のモータの速度を保存
+        left_speed_0 = self.state_dict["speed_left"]
+        right_speed_0 = self.state_dict["speed_right"]
+
+        # 左右の車輪の回転速度(センチメートル毎秒)を計算
+        velocity = self.radians(turning_angle) * (self.distance_between_wheels / 2.0) / rotate_time
+        # モータの速度に変換
+        speed = self.convert_centimeters_per_second_to_speed(velocity)
+
+        # 左右の車輪を互いに等速逆回転
+        self.set_speed_immediately(-speed, speed)
+        time.sleep(rotate_time)
+
+        # 以前の速度を復元
+        self.set_speed_immediately(left_speed_0, right_speed_0)
 
     def stop(self):
         """2つのモータを停止"""
