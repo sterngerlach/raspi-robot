@@ -176,14 +176,8 @@ class FollowHumanFaceApp(object):
             # モータは命令を実行中でない
             self.__is_motor_executing = False
         elif msg_content["state"] == "done":
-            # ロボットはまだ左右に曲がっている途中
-            if msg_content["command"] == "accel-right" or \
-                msg_content["command"] == "accel-left":
-                # モータは命令を実行中である
-                self.__is_motor_executing = True
-            else:
-                # モータは命令を実行中でない
-                self.__is_motor_executing = False
+            # モータは命令を実行中でない
+            self.__is_motor_executing = False
 
             # モータの使用を終了した場合はアプリケーションも終了
             if msg_content["command"] == "end":
