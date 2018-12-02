@@ -198,17 +198,25 @@
 
     1秒間あたりの車輪の回転数をモータの速度に変換します。
 
+- `calculate_turning_angle_velocity(left_velocity, right_velocity)`
+
+    左右の車輪の回転速度(センチメートル毎秒)からロボットの旋回角速度(ラジアン毎秒)を計算します。
+
 - `calculate_turning_radius(left_velocity, right_velocity)`
 
-    左右の車輪の回転速度(センチメートル毎秒)からロボットの旋回半径を計算します。
+    左右の車輪の回転速度(センチメートル毎秒)からロボットの旋回半径(センチメートル)を計算します。
 
 - `calculate_center_velocity(left_velocity, right_velocity)`
 
-    左右の車輪の回転速度(センチメートル毎秒)からロボットの中心速度を計算します。
+    左右の車輪の回転速度(センチメートル毎秒)からロボットの中心速度(センチメートル毎秒)を計算します。
 
-- `calculate_turning_angle_velocity(left_velocity, right_velocity)`
+- `calculate_left_velocity(turning_radius, turning_angle_velocity)`
+    
+    ロボットの旋回半径(センチメートル)とロボットの旋回角速度(ラジアン毎秒)から、左の車輪の回転速度(センチメートル毎秒)を計算します。
 
-    左右の車輪の回転速度(センチメートル毎秒)からロボットの旋回角速度を計算します。
+- `calculate_right_velocity(turning_radius, turning_angle_velocity)`
+    
+    ロボットの旋回半径(センチメートル)とロボットの旋回角速度(ラジアン毎秒)から、右の車輪の回転速度(センチメートル毎秒)を計算します。
 
 #### 共有変数の内容
 
@@ -330,6 +338,52 @@
         { "command": "set-right-speed-imm", "speed": 3000 })
     ```
 
+- move-distanceコマンド
+
+    現在の速度を保った状態で、指定された距離(センチメートル)を移動します。移動に必要な時間が計算され、その時間だけ`time.sleep()`メソッドにより待機します。
+
+    ```python
+    node_manager.send_command("motor",
+        { "command": "move-distance", "distance": 150 })
+    ```
+
+- rotate0コマンド
+
+    ロボットの中心速度(センチメートル毎秒)、旋回半径(センチメートル)、旋回角度(度数法)を指定して、ロボットを回転させます。**回転の終了後、回転開始前の速度に自動的に戻されます**。ロボットの旋回角速度(ラジアン毎秒)、回転に必要な時間(秒)、左右の車輪の回転速度(センチメートル毎秒)が計算されます。
+
+    ```python
+    node_manager.send_command("motor",
+        { "command": "rotate0", "center_velocity": 30,
+          "turning_radius": 100, "turning_angle": 120 })
+    ```
+
+- rotate1コマンド
+
+    ロボットの中心速度(センチメートル毎秒)、旋回角度(度数法)、旋回時間(秒)を指定して、ロボットを回転させます。**回転の終了後、回転開始前の速度に自動的に戻されます**。ロボットの旋回角速度(ラジアン毎秒)、旋回半径(センチメートル)、左右の車輪の回転速度(センチメートル毎秒)が計算されます。
+
+    ```python
+    node_manager.send_command("motor",
+        { "command": "rotate1", "center_velocity": 30,
+          "turning_angle": 180, "rotate_time": 5.0 })
+    ```
+
+- rotate2コマンド
+
+    現在の速度を保った状態で、ロボットの旋回角度を指定して回転させます。
+
+    ```python
+    node_manager.send_command("motor",
+        { "command": "rotate2", "turning_angle": 120 })
+    ```
+
+- waitコマンド
+
+    モータの状態を指定された時間だけ一定に保ちます。ロボットを一定の速度で走行させたい場合に使用します。内部では`time.sleep()`メソッドを呼び出して、モータを操作するプロセスの実行を一時的に止めています。`command`キーには`wait`を指定します。`seconds`キーに待ち時間を指定します。
+
+    ```python
+    node_manager.send_command("motor", { "command": "wait", "seconds": 3.0 })
+    ```
+
 - stopコマンド
 
     両側のモータの速度を0にしてロボットを止めます。`command`キーに`stop`を指定します。
@@ -344,14 +398,6 @@
 
     ```python
     node_manager.send_command("motor", { "command": "end" })
-    ```
-
-- waitコマンド
-
-    モータの状態を指定された時間だけ一定に保ちます。ロボットを一定の速度で走行させたい場合に使用します。内部では`time.sleep()`メソッドを呼び出して、モータを操作するプロセスの実行を一時的に止めています。`command`キーには`wait`を指定します。`seconds`キーに待ち時間を指定します。
-
-    ```python
-    node_manager.send_command("motor", { "command": "wait", "seconds": 3.0 })
     ```
 
 - sequentialコマンド
@@ -385,6 +431,14 @@
 
     ```python
     { "sender": "motor", "content": { "command": (実行されたコマンド名), "state": "start" } }
+    ```
+
+- 命令の実行無視
+
+    モータへの命令の実行が無視されたことを表します。コマンドが不正であったり、コマンドに渡す値が不正である場合は無視されます。
+
+    ```python
+    { "sender": "motor", "content": { "command": (無視されたコマンド名), "state": "ignored" } }
     ```
 
 - 命令の実行終了
@@ -538,7 +592,7 @@ while True:
 
 - 音声ファイルの実行開始
 
-指定された音声ファイルの再生が開始したことを表します。
+    指定された音声ファイルの再生が開始したことを表します。
 
     ```python
     { "file_name": (再生された音声ファイル名), "state": "start" }
@@ -546,7 +600,7 @@ while True:
 
 - 音声ファイルの実行終了
 
-指定された音声ファイルの再生が終了したことを表します。
+    指定された音声ファイルの再生が終了したことを表します。
 
     ```python
     { "file_name": (再生された音声ファイル名), "state": "done" }
@@ -554,7 +608,7 @@ while True:
 
 - 音声合成の開始
 
-指定された文章の合成が開始したことを表します。
+    指定された文章の合成が開始したことを表します。
 
     ```python
     { "sentence": (指定された文章), "state": "start" }
@@ -562,7 +616,7 @@ while True:
 
 - 音声合成の終了
 
-指定された文章の合成と音声ファイルの再生が終了したことを表します。
+    指定された文章の合成と音声ファイルの再生が終了したことを表します。
 
     ```python
     { "sentence": (指定された文章), "state": "done" }
