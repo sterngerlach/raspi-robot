@@ -31,7 +31,8 @@ class VoiceControlApp(object):
             "enable_webcam": False,
             "motor": {},
             "srf02": {
-                "near_obstacle_threshold": 15,
+                "distance_threshold": 15,
+                "near_obstacle_threshold": 10,
                 "interval": 5,
                 "addr_list": [0x70]
             },
@@ -90,8 +91,7 @@ class VoiceControlApp(object):
                 
                 # アプリケーションを終了
                 if self.__app_exit:
-                    self.__talk("じゃあね")
-                    self.__openjtalk_node.wait_until_all_command_done()
+                    self.__aplay("bye.wav")
                     break
                     
         except KeyboardInterrupt:
@@ -102,6 +102,10 @@ class VoiceControlApp(object):
         """音声合成エンジンOpenJTalkで指定された文章を話す"""
         self.__node_manager.send_command("openjtalk", { "sentence": sentence })
 
+    def __aplay(self, file_name):
+        """指定された音声ファイルを再生"""
+        self.__node_manager.send_command("openjtalk", { "file_name": file_name })
+
     def __send_motor_command(self, cmd):
         """モータに指定された命令を送信"""
         self.__node_manager.send_command("motor", cmd)
@@ -111,6 +115,9 @@ class VoiceControlApp(object):
         if msg_content["state"] == "start":
             # モータは命令を実行中である
             self.__is_motor_executing = True
+        elif msg_content["state"] == "ignored":
+            # モータは命令を実行中でない
+            self.__is_motor_executing = False
         elif msg_content["state"] == "done":
             # モータは命令を実行中でない
             self.__is_motor_executing = False
@@ -129,7 +136,7 @@ class VoiceControlApp(object):
             self.__motor_node.stop()
             
             # 障害物を検知したことをユーザに知らせる
-            self.__talk("ぶつかる")
+            self.__aplay("obstacle-detected.wav")
 
             # モータは命令を実行中でない
             self.__is_motor_executing = False
@@ -142,12 +149,12 @@ class VoiceControlApp(object):
 
         # モータが命令を実行中であれば無視
         if self.__is_motor_executing:
-            self.__talk("ちょっと待ってください")
+            self.__aplay("wait-a-moment.wav")
             return
 
         # 認識語彙が命令ではない場合は無視
         if "command" not in msg_content:
-            self.__talk("命令が分かりません")
+            self.__aplay("unknown-command.wav")
             return
 
         # 認識語彙と認識精度を取得
@@ -156,16 +163,20 @@ class VoiceControlApp(object):
 
         # 認識精度が低い場合は無視
         if command_accuracy < 0.95:
-            self.__talk("命令が分かりません")
+            self.__aplay("unknown-command.wav")
             return
 
         # 認識した語彙に応じてモータに命令を送信
         if command == "進め":
             # モータに命令を送信
-            self.__send_motor_command({ "command": "accel", "speed": 9000, "wait_time": 0.03 })
+            self.__send_motor_command({
+                "command": "set-speed", "speed_left": 9000, "speed_right": 9000,
+                "step_left": 150, "step_right": 150, "wait_time": 0.05 })
         elif command == "ブレーキ":
             # モータに命令を送信
-            self.__send_motor_command({ "command": "brake", "speed": 0, "wait_time": 0.03 })
+            self.__send_motor_command({
+                "command": "set-speed", "speed_left": 0, "speed_right": 0,
+                "step_left": 150, "step_right": 150, "wait_time": 0.05 })
         elif command == "ストップ":
             # モータに命令を送信
             self.__send_motor_command({ "command": "stop" })
@@ -179,20 +190,24 @@ class VoiceControlApp(object):
 
             # 方向の語彙の認識精度が低い場合は無視
             if direction_accuracy < 0.95:
-                self.__talk("方向が分かりません")
+                self.__aplay("unknown-direction.wav")
                 return
 
             # 指定された方向に曲がる
             if direction == "左":
-                self.__send_motor_command({ "command": "rotate", "direction": "left" })
+                self.__send_motor_command({
+                    "command": "rotate1", "center_velocity": 15,
+                    "turning_angle": 90, "rotate_time": 3.0 })
             elif direction == "右":
-                self.__send_motor_command({ "command": "rotate", "direction": "right" })
+                self.__send_motor_command({
+                    "command": "rotate1", "center_velocity": 15,
+                    "turning_angle": -90, "rotate_time": 3.0 })
             else:
                 # 方向の語彙でない場合は無視
-                self.__talk("方向が分かりません")
+                self.__aplay("unknown-direction.wav")
         else:
             # 命令でない場合は無視
-            self.__talk("方向が分かりません")
+            self.__aplay("unknown-direction.wav")
 
         return
 
