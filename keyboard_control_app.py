@@ -33,7 +33,8 @@ class KeyboardControlApp(object):
             "motor": {},
             "servo": {},
             "srf02": {
-                "near_obstacle_threshold": 15,
+                "distance_threshold": 15,
+                "near_obstacle_threshold": 10,
                 "interval": 0.25,
                 "addr_list": [0x70]
             },
@@ -52,6 +53,10 @@ class KeyboardControlApp(object):
     def __talk(self, sentence):
         """音声合成エンジンOpenJTalkで指定された文章を話す"""
         self.__node_manager.send_command("openjtalk", { "sentence": sentence })
+
+    def __aplay(self, file_name):
+        """指定された音声ファイルを再生"""
+        self.__node_manager.send_command("openjtalk", { "file_name": file_name })
 
     def __send_motor_command(self, cmd):
         """モータに指定された命令を送信"""
@@ -79,7 +84,82 @@ class KeyboardControlApp(object):
         # スレッドの終了を待機(Ctrl-Cで終了)
         msg_thread.join()
         keyboard_input_thread.join()
-            
+    
+    def __print_available_commands(self):
+        with self.__lock:
+            print("available commands: \n" +
+                  "set-speed, set-left-speed, set-right-speed, " +
+                  "set-speed-imm, set-left-speed-imm, set-right-speed-imm, " +
+                  "move-distance, rotate0, rotate1, rotate2, " +
+                  "pivot-turn, spin-turn, wait, stop, end, " +
+                  "cancel, cream, srf02, talk, aplay")
+
+    def __print_set_speed_usage(self):
+        with self.__lock:
+            print("set-speed usage: " +
+                  "talk <speed-left> <speed-right> <step-left> <step-right> <wait-time>")
+
+    def __print_set_left_speed_usage(self):
+        with self.__lock:
+            print("set-left-speed usage: " +
+                  "set-left-speed <speed> <step> <wait-time>")
+    
+    def __print_set_right_speed_usage(self):
+        with self.__lock:
+            print("set-right-speed usage: " +
+                  "set-right-speed <speed> <step> <wait-time>")
+
+    def __print_set_speed_imm_usage(self):
+        with self.__lock:
+            print("set-speed-imm usage: " +
+                  "set-speed-imm <speed-left> <speed-right>")
+    
+    def __print_set_left_speed_imm_usage(self):
+        with self.__lock:
+            print("set-left-speed-imm usage: set-left-speed-imm <speed>")
+
+    def __print_set_right_speed_imm_usage(self):
+        with self.__lock:
+            print("set-right-speed-imm usage: set-right-speed-imm <speed>")
+    
+    def __print_move_distance_usage(self):
+        with self.__lock:
+            print("move-distance usage: move-distance <distance>")
+
+    def __print_rotate0_usage(self):
+        with self.__lock:
+            print("rotate0 usage: " +
+                  "rotate0 <center-velocity> <turning-radius> <turning-angle>")
+
+    def __print_rotate1_usage(self):
+        with self.__lock:
+            print("rotate1 usage: " +
+                  "rotate1 <center-velocity> <turning-angle> <rotate-time>")
+
+    def __print_rotate2_usage(self):
+        with self.__lock:
+            print("rotate2 usage: rotate2 <turning-angle>")
+    
+    def __print_pivot_turn_usage(self):
+        with self.__lock:
+            print("pivot-turn usage: pivot-turn <turning-angle> <rotate-time>")
+
+    def __print_spin_turn_usage(self):
+        with self.__lock:
+            print("spin-turn usage: spin-turn <turning-angle> <rotate-time>")
+
+    def __print_wait_usage(self):
+        with self.__lock:
+            print("wait usage: wait <seconds>")
+    
+    def __print_talk_usage(self):
+        with self.__lock:
+            print("talk usage: talk <sentence>")
+
+    def __print_aplay_usage(self):
+        with self.__lock:
+            print("aplay usage: aplay <file-name")
+
     def __handle_msg(self):
         """ノードからアプリケーションに届くメッセージの処理"""
         try:
@@ -112,39 +192,136 @@ class KeyboardControlApp(object):
                 input_cmd = input("> ")
 
                 if len(input_cmd) == 0:
-                    with self.__lock:
-                        print("available commands: \n" +
-                              "accel, brake, brake-left, brake-right, " +
-                              "stop, end, rotate-left, rotate-right, cancel, " +
-                              "cream, srf02, talk")
+                    self.__print_available_commands()
                     continue
 
                 commands = input_cmd.split()
                 command = commands[0]
                 
                 # 入力されたコマンドに応じて命令を送信
-                if command == "accel":
-                    self.__send_motor_command(
-                        { "command": "accel", "speed": 9000, "wait_time": 0.2 })
-                elif command == "brake":
-                    self.__send_motor_command(
-                        { "command": "brake", "speed": 0, "wait_time": 0.2 })
-                elif command == "brake-left":
-                    self.__send_motor_command(
-                        { "command": "brake-left", "speed": 3000, "wait_time": 0.06 })
-                elif command == "brake-right":
-                    self.__send_motor_command(
-                        { "command": "brake-right", "speed": 3000, "wait_time": 0.06 })
+                if command == "set-speed":
+                    if len(commands) != 6:
+                        self.__print_set_speed_usage()
+                    else:
+                        self.__send_motor_command({
+                            "command": "set-speed",
+                            "speed_left": int(commands[1]),
+                            "speed_right": int(commands[2]),
+                            "step_left": int(commands[3]),
+                            "step_right": int(commands[4]),
+                            "wait_time": float(commands[5])
+                        })
+                elif command == "set-left-speed":
+                    if len(commands) != 4:
+                        self.__print_set_left_speed_usage()
+                    else:
+                        self.__send_motor_command({
+                            "command": "set-left-speed",
+                            "speed": int(commands[1]),
+                            "step": int(commands[2]),
+                            "wait_time": float(commands[3])
+                        })
+                elif command == "set-right-speed":
+                    if len(commands) != 4:
+                        self.__print_set_right_speed_usage()
+                    else:
+                        self.__send_motor_command({
+                            "command": "set-right-speed",
+                            "speed": int(commands[1]),
+                            "step": int(commands[2]),
+                            "wait_time": float(commands[3])
+                        })
+                elif command == "set-speed-imm":
+                    if len(commands) != 3:
+                        self.__print_set_speed_imm_usage()
+                    else:
+                        self.__send_motor_command({
+                            "command": "set-speed-imm",
+                            "speed_left": int(commands[1]),
+                            "speed_right": int(commands[2])
+                        })
+                elif command == "set-left-speed-imm":
+                    if len(commands) != 2:
+                        self.__print_set_left_speed_imm_usage()
+                    else:
+                        self.__send_motor_command({
+                            "command": "set-left-speed-imm",
+                            "speed": int(commands[1])
+                        })
+                elif command == "set-right-speed-imm":
+                    if len(commands) != 2:
+                        self.__print_set_right_speed_imm_usage()
+                    else:
+                        self.__send_motor_command({
+                            "command": "set-right-speed-imm",
+                            "speed": int(commands[1])
+                        })
+                elif command == "move-distance":
+                    if len(commands) != 2:
+                        self.__print_move_distance_usage()
+                    else:
+                        self.__send_motor_command({
+                            "command": "move-distance",
+                            "distance": int(commands[1])
+                        })
+                elif command == "rotate0":
+                    if len(commands) != 4:
+                        self.__print_rotate0_usage()
+                    else:
+                        self.__send_motor_command({
+                            "command": "rotate0",
+                            "center_velocity": float(commands[1]),
+                            "turning_radius": float(commands[2]),
+                            "turning_angle": float(commands[3])
+                        })
+                elif command == "rotate1":
+                    if len(commands) != 4:
+                        self.__print_rotate1_usage()
+                    else:
+                        self.__send_motor_command({
+                            "command": "rotate1",
+                            "center_velocity": float(commands[1]),
+                            "turning_angle": float(commands[2]),
+                            "rotate_time": float(commands[3])
+                        })
+                elif command == "rotate2":
+                    if len(commands) != 2:
+                        self.__print_rotate2_usage()
+                    else:
+                        self.__send_motor_command({
+                            "command": "rotate2",
+                            "turning_angle": float(commands[1])
+                        })
+                elif command == "pivot-turn":
+                    if len(commands) != 3:
+                        self.__print_pivot_turn_usage()
+                    else:
+                        self.__send_motor_command({
+                            "command": "pivot-turn",
+                            "turning_angle": float(commands[1]),
+                            "rotate_time": float(commands[2])
+                        })
+                elif command == "spin-turn":
+                    if len(commands) != 3:
+                        self.__print_spin_turn_usage()
+                    else:
+                        self.__send_motor_command({
+                            "command": "spin-turn",
+                            "turning_angle": float(commands[1]),
+                            "rotate_time": float(commands[2])
+                        })
+                elif command == "wait":
+                    if len(commands) != 2:
+                        self.__print_wait_usage()
+                    else:
+                        self.__send_motor_command({
+                            "command": "wait",
+                            "seconds": float(commands[1])
+                        })
                 elif command == "stop":
                     self.__send_motor_command({ "command": "stop" })
                 elif command == "end":
                     self.__send_motor_command({ "command": "end" })
-                elif command == "rotate-left":
-                    self.__send_motor_command(
-                        { "command": "rotate", "direction": "left" })
-                elif command == "rotate-right":
-                    self.__send_motor_command(
-                        { "command": "rotate", "direction": "right" })
                 elif command == "cancel":
                     self.__motor_node.terminate()
                     self.__motor_node.stop()
@@ -162,17 +339,16 @@ class KeyboardControlApp(object):
                                   self.__srf02_state[0x70]["near"]))
                 elif command == "talk":
                     if len(commands) < 2:
-                        with self.__lock:
-                            print("talk usage: talk <sentence>")
-                        continue
-
-                    self.__talk(commands[1])
+                        self.__print_talk_usage()
+                    else:
+                        self.__talk(commands[1])
+                elif command == "aplay":
+                    if len(commands) < 2:
+                        self.__print_aplay_usage()
+                    else:
+                        self.__aplay(commands[1])
                 else:
-                    with self.__lock:
-                        print("available commands: \n" +
-                              "accel, brake, brake-left, brake-right, " +
-                              "stop, end, rotate-left, rotate-right, cancel, " +
-                              "cream, srf02, talk")
+                    self.__print_available_commands()
 
         except KeyboardInterrupt:
             # プロセスが割り込まれた場合
