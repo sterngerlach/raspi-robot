@@ -22,7 +22,7 @@ class OpenJTalkNode(CommandReceiverNode):
 
         # OpenJTalkを開始するスクリプトのパス
         self.openjtalk_startup_script_path = \
-            file_dir.parent.joinpath("scripts", "openjtalk-start.sh"
+            file_dir.parent.joinpath("scripts", "openjtalk-start.sh")
 
         # 音声ファイルが保存されているディレクトリ
         self.audio_files_dir = file_dir.parent.joinpath("audio")

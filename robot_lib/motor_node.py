@@ -149,7 +149,7 @@ class MotorNode(CommandReceiverNode):
     
     def convert_speed_to_steps_per_second(self, speed):
         """モータの速度を1秒間あたりのステップ数に変換"""
-        return int(speed * (2 ** (-28)) / (250 * (10 ** (-9)))
+        return int(speed * (2 ** (-28)) / (250 * (10 ** (-9))))
     
     def convert_steps_per_second_to_speed(self, steps_per_second):
         """1秒間あたりのステップ数をモータの速度に変換"""
@@ -332,7 +332,7 @@ class MotorNode(CommandReceiverNode):
                              "at least one motor must be rotating")
         
         # 左右のモータの速度が同符号でない場合は例外を送出
-        if (self.state_dict["speed_left"] > 0 and self.state_dict["speed_right"] < 0) or
+        if (self.state_dict["speed_left"] > 0 and self.state_dict["speed_right"] < 0) or \
             (self.state_dict["speed_left"] < 0 and self.state_dict["speed_right"] > 0):
             raise ValueError("MotorNode::move_distance(): " +
                              "the left and right speed should have the same sign")
@@ -411,7 +411,7 @@ class MotorNode(CommandReceiverNode):
     def rotate2(self, turning_angle):
         """現在の速度を保った状態で, ロボットの旋回角度を指定して回転"""
         # 左右のモータの速度が同符号でない場合は例外を送出
-        if (self.state_dict["speed_left"] > 0 and self.state_dict["speed_right"] < 0) or
+        if (self.state_dict["speed_left"] > 0 and self.state_dict["speed_right"] < 0) or \
             (self.state_dict["speed_left"] < 0 and self.state_dict["speed_right"] > 0):
             raise ValueError("MotorNode::rotate2(): " +
                              "the left and right speed should have the same sign")
