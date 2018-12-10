@@ -363,7 +363,7 @@ class MotorNode(CommandReceiverNode):
         # ロボットの旋回角速度(ラジアン毎秒)を計算
         turning_angle_velocity = center_velocity / turning_radius
         # 回転に必要な時間を計算
-        rotate_time = self.radians(turning_angle) / turning_angle_velocity
+        rotate_time = math.radians(turning_angle) / turning_angle_velocity
         # 左右の車輪の回転速度(センチメートル毎秒)を計算
         left_velocity = (turning_radius - self.distance_between_wheels / 2.0) * \
             turning_angle_velocity
@@ -390,7 +390,7 @@ class MotorNode(CommandReceiverNode):
         right_speed_0 = self.state_dict["speed_right"]
 
         # ロボットの旋回角速度(ラジアン毎秒)を計算
-        turning_angle_velocity = self.radians(turning_angle) / rotate_time
+        turning_angle_velocity = math.radians(turning_angle) / rotate_time
         # ロボットの旋回半径(センチメートル)を計算
         turning_radius = center_velocity / turning_angle_velocity
         # 左右の車輪の回転速度(センチメートル毎秒)を計算
@@ -435,7 +435,7 @@ class MotorNode(CommandReceiverNode):
         turning_angle_velocity = self.calculate_turning_angle_velocity(
             left_velocity, right_velocity)
         # 所要時間を計算
-        rotate_time = self.radians(turning_angle) / turning_angle_velocity
+        rotate_time = math.radians(turning_angle) / turning_angle_velocity
 
         # 所要時間が長過ぎる場合は回転できない
         if rotate_time > 60.0:
@@ -459,7 +459,7 @@ class MotorNode(CommandReceiverNode):
         right_speed_0 = self.state_dict["speed_right"]
 
         # 右側の車輪の回転速度(センチメートル毎秒)を計算
-        right_velocity = self.radians(turning_angle) * self.distance_between_wheels / rotate_time
+        right_velocity = math.radians(turning_angle) * self.distance_between_wheels / rotate_time
         # モータの速度に変換
         right_speed = self.convert_centimeters_per_second_to_speed(right_velocity)
 
@@ -481,7 +481,7 @@ class MotorNode(CommandReceiverNode):
         right_speed_0 = self.state_dict["speed_right"]
 
         # 左右の車輪の回転速度(センチメートル毎秒)を計算
-        velocity = self.radians(turning_angle) * (self.distance_between_wheels / 2.0) / rotate_time
+        velocity = math.radians(turning_angle) * (self.distance_between_wheels / 2.0) / rotate_time
         # モータの速度に変換
         speed = self.convert_centimeters_per_second_to_speed(velocity)
 
