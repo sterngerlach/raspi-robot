@@ -33,7 +33,7 @@ def process_image(sock, addr):
         # 画像のサイズを受信
         msg_header_size = struct.calcsize("!L")
         recv_data = sock.recv(msg_header_size)
-        frame_size = struct.unpack("!L", recv_data)
+        frame_size = struct.unpack("!L", recv_data)[0]
         print("process_image(): frame size: {0}".format(frame_size))
 
         # 画像を受信
