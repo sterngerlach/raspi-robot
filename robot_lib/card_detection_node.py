@@ -58,15 +58,15 @@ class CardDetectionNode(CommandReceiverNode):
         # キャプチャする画像の横幅を送信
         send_data = struct.pack("!i", self.frame_width)
         self.client_socket.sendall(send_data)
-        recv_data = self.recv(msg_size)
+        recv_data = self.client_socket.recv(msg_size)
         recv_data = struct.unpack("!i", recv_data)[0]
         print("CardDetectionNode::__init__(): magic value received: {0}".format(recv_data))
         
         # キャプチャする画像の縦幅を送信
         send_data = struct.pack("!i", self.frame_height)
         self.client_socket.sendall(send_data)
-        self.recv(msg_size)
-        recv_data = self.recv(msg_size)
+        self.client_socket.recv(msg_size)
+        recv_data = self.client_socket.recv(msg_size)
         recv_data = struct.unpack("!i", recv_data)[0]
         print("CardDetectionNode::__init__(): magic value received: {0}".format(recv_data))
 
