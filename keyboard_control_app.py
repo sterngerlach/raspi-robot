@@ -26,9 +26,9 @@ class KeyboardControlApp(object):
             "enable_motor": True,
             "enable_servo": True,
             "enable_srf02": True,
-            "enable_julius": False,
+            "enable_julius": True,
             "enable_openjtalk": True,
-            "enable_speechapi": True,
+            "enable_speechapi": False,
             "enable_webcam": False,
             "enable_card": True,
             "motor": {},
@@ -40,13 +40,14 @@ class KeyboardControlApp(object):
                 "addr_list": [0x70]
             },
             "openjtalk": {},
+            "julius": {},
             "speechapi": {},
             "webcam": {},
             "card": {
                 "server_host": sys.argv[1],
                 "camera_id": 0,
-                "frame_width": 400,
-                "frame_height": 300
+                "frame_width": 640,
+                "frame_height": 480
             }
         }
 
