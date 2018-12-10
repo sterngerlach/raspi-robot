@@ -11,6 +11,8 @@ import struct
 import time
 import zlib
 
+from cardSSD import card_detect
+
 def process_image(sock, addr):
     # 画像のサイズを受信
     msg_size = struct.calcsize("!i")
@@ -48,16 +50,17 @@ def process_image(sock, addr):
         print("process_image(): image received (shape: {0})".format(frame_data.shape))
 
         # 画像を検出
+        cards = card_detect(frame_data)
         
         # 検出されたカードの枚数を送信
-        cards_num = 2
+        cards_num = len(cards)
         sock.sendall(struct.pack("!i", cards_num))
         recv_data = sock.recv(msg_size)
         recv_data = struct.unpack("!i", recv_data)[0]
         print("process_image(): magic value received: {0}".format(recv_data))
 
         # 検出されたカードの数字を送信
-        for i in range(cards_num):
+        for i in cards:
             sock.sendall(struct.pack("!i", i))
             recv_data = sock.recv(msg_size)
             recv_data = struct.unpack("!i", recv_data)[0]
