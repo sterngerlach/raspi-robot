@@ -29,7 +29,8 @@ class KeyboardControlApp(object):
             "enable_julius": False,
             "enable_openjtalk": True,
             "enable_speechapi": True,
-            "enable_webcam": True,
+            "enable_webcam": False,
+            "enable_card": True,
             "motor": {},
             "servo": {},
             "srf02": {
@@ -40,7 +41,13 @@ class KeyboardControlApp(object):
             },
             "openjtalk": {},
             "speechapi": {},
-            "webcam": {}
+            "webcam": {},
+            "card": {
+                "server_host": sys.argv[1],
+                "camera_id": 0,
+                "frame_width": 400,
+                "frame_height": 300
+            }
         }
 
         # ロボットのモジュールの管理クラスを初期化
@@ -92,7 +99,7 @@ class KeyboardControlApp(object):
                   "set-speed-imm, set-left-speed-imm, set-right-speed-imm, " +
                   "move-distance, rotate0, rotate1, rotate2, " +
                   "pivot-turn, spin-turn, wait, stop, end, " +
-                  "cancel, cream, srf02, talk, aplay")
+                  "cancel, cream, srf02, talk, aplay, detect")
 
     def __print_set_speed_usage(self):
         with self.__lock:
@@ -158,7 +165,7 @@ class KeyboardControlApp(object):
 
     def __print_aplay_usage(self):
         with self.__lock:
-            print("aplay usage: aplay <file-name")
+            print("aplay usage: aplay <file-name>")
 
     def __handle_msg(self):
         """ノードからアプリケーションに届くメッセージの処理"""
@@ -347,6 +354,8 @@ class KeyboardControlApp(object):
                         self.__print_aplay_usage()
                     else:
                         self.__aplay(commands[1])
+                elif command == "detect":
+                    self.__node_manager.send_command("card", { "command": "detect" })
                 else:
                     self.__print_available_commands()
 
