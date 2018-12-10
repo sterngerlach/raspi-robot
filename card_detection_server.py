@@ -38,6 +38,8 @@ def process_image(sock, addr):
 
         # 画像を受信
         frame_data = sock.recv(frame_size)
+        frame_data = zlib.decompress(frame_data)
+        frame_data = pickle.loads(frame_data)
         print("process_image(): image received (shape: {0})".format(frame_data.shape))
 
         # 画像を検出
