@@ -18,6 +18,7 @@ from julius_node import JuliusNode
 from openjtalk_node import OpenJTalkNode
 from google_speech_api_node import GoogleSpeechApiNode
 from webcam_node import WebCamNode
+from card_detection_node import CardDetectionNode
 
 class NodeManager(object):
     """
@@ -75,6 +76,10 @@ class NodeManager(object):
         # ウェブカメラのノードを初期化
         if self.__config_dict["enable_webcam"]:
             self.__setup_webcam_node(config_dict["webcam"])
+
+        # カード検出のノードを初期化
+        if self.__config_dict["enable_card"]:
+            self.__setup_card_detection_node(config_dict["card"])
 
     def __setup_gpio(self):
         """GPIOの初期化"""
@@ -203,6 +208,20 @@ class NodeManager(object):
         
         # ウェブカメラのノードを追加
         self.__add_data_sender_node("webcam", self.__webcam_node)
+
+    def __setup_card_detection_node(self, config_dict):
+        """トランプのカードを検出するノードを初期化"""
+
+        # カードを検出するノードを作成
+        self.__card_detection_node = CardDetectionNode(
+            self.__process_manager, self.__msg_queue,
+            config_dict["server_host"],
+            config_dict["camera_id"],
+            config_dict["frame_width"],
+            config_dict["frame_height"])
+
+        # か０度を検出するノードを追加
+        self.__add_command_receiver_node("card", self.__card_detection_node)
 
     def __add_data_sender_node(self, name, node):
         """指定された名前を持つノードを追加"""
