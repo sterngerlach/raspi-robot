@@ -37,7 +37,12 @@ def process_image(sock, addr):
         print("process_image(): frame size: {0}".format(frame_size))
 
         # 画像を受信
-        frame_data = sock.recv(frame_size)
+        frame_data = b""
+
+        while len(frame_data) < frame_size:
+            chunk = sock.recv(frame_size - len(frame_data))
+            frame_data += chunk
+
         frame_data = zlib.decompress(frame_data)
         frame_data = pickle.loads(frame_data)
         print("process_image(): image received (shape: {0})".format(frame_data.shape))
