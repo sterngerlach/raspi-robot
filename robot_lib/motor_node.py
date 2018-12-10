@@ -246,7 +246,7 @@ class MotorNode(CommandReceiverNode):
                     min(self.state_dict["speed_right"] + step_right, speed_right) if right_op == 1 \
                     else max(self.state_dict["speed_right"] - step_right, speed_right) if right_op == -1 \
                     else self.state_dict["speed_right"]
-                self.motor_right.run(self.state_dict["speed_right"])
+                self.motor_right.run(-1 * self.state_dict["speed_right"])
             
             time.sleep(wait_time)
     
@@ -264,6 +264,7 @@ class MotorNode(CommandReceiverNode):
 
         key = "speed_left" if which == "left" else "speed_right"
         motor = self.motor_left if which == "left" else self.motor_right
+        neg = 1 if which == "left" else -1
         op = 1 if speed > self.state_dict[key] \
              else -1 if speed < self.state_dict[key] \
              else 0
@@ -282,7 +283,7 @@ class MotorNode(CommandReceiverNode):
                 min(self.state_dict[key] + step, speed) if op == 1 \
                 else max(self.state_dict[key] - step, speed) if op == -1 \
                 else self.state_dict[key]
-            motor.run(self.state_dict[key])
+            motor.run(neg * self.state_dict[key])
 
             time.sleep(wait_time)
 
@@ -300,7 +301,7 @@ class MotorNode(CommandReceiverNode):
         self.state_dict["speed_right"] = speed_right
 
         self.motor_left.run(self.state_dict["speed_left"])
-        self.motor_right.run(self.state_dict["speed_right"])
+        self.motor_right.run(-1 * self.state_dict["speed_right"])
     
     def set_single_motor_speed_immediately(self, which, speed):
         """片方のモータの速度を設定(即変更)"""
@@ -313,9 +314,10 @@ class MotorNode(CommandReceiverNode):
         
         key = "speed_left" if which == "left" else "speed_right"
         motor = self.motor_left if which == "left" else self.motor_right
+        neg = 1 if which == "left" else -1
 
         self.state_dict[key] = speed
-        motor.run(self.state_dict[key])
+        motor.run(neg * self.state_dict[key])
     
     def set_left_speed_immediately(self, speed):
         """左側のモータの速度を設定(即変更)"""
