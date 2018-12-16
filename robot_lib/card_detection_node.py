@@ -53,17 +53,17 @@ class CardDetectionNode(CommandReceiverNode):
         self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
 
         # キャプチャする画像のサイズを送信
-        msg_size = struct.calcsize("!i")
+        msg_size = struct.calcsize("!I")
         
         # キャプチャする画像の横幅を送信
-        send_data = struct.pack("!i", self.frame_width)
+        send_data = struct.pack("!I", self.frame_width)
         self.client_socket.sendall(send_data)
         recv_data = self.client_socket.recv(msg_size)
         recv_data = struct.unpack("!i", recv_data)[0]
         print("CardDetectionNode::__init__(): magic value received: {0}".format(recv_data))
         
         # キャプチャする画像の縦幅を送信
-        send_data = struct.pack("!i", self.frame_height)
+        send_data = struct.pack("!I", self.frame_height)
         self.client_socket.sendall(send_data)
         recv_data = self.client_socket.recv(msg_size)
         recv_data = struct.unpack("!i", recv_data)[0]
@@ -89,11 +89,11 @@ class CardDetectionNode(CommandReceiverNode):
                     raise UnknownCommandException(
                         "CardDetectionNode::process_command(): unknown command: {0}"
                         .format(cmd))
-                
-                # 命令の実行開始をアプリケーションに伝達
-                self.send_message("card", { "cmd": "detect", "state": "start" })
-                
+
                 if cmd["command"] == "detect":
+                    # 命令の実行開始をアプリケーションに伝達
+                    self.send_message("card", { "cmd": cmd["command"], "state": "start" })
+
                     # カードの検出を実行
                     cards = self.detect()
 
@@ -119,27 +119,29 @@ class CardDetectionNode(CommandReceiverNode):
 
         # 画像データを作成
         ret, frame = self.video_capture.read()
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        ret, frame = cv2.imencode(".png", frame, [int(cv2.CV_IMWRITE_PNG_COMPRESSION), 3])
         frame_data = pickle.dumps(frame)
         frame_data = zlib.compress(frame_data)
         frame_size = len(frame_data)
         
         # 画像データを送信
-        self.client_socket.sendall(struct.pack("!L", frame_size) + frame_data)
+        self.client_socket.sendall(struct.pack("!I", frame_size) + frame_data)
 
         # 検出されたカードの枚数を取得
-        msg_size = struct.calcsize("!i")
+        msg_size = struct.calcsize("!I")
         recv_data = self.client_socket.recv(msg_size)
-        cards_num = struct.unpack("!i", recv_data)[0]
-        self.client_socket.sendall(struct.pack("!i", 789))
+        cards_num = struct.unpack("!I", recv_data)[0]
+        self.client_socket.sendall(struct.pack("!I", 789))
 
         # 検出されたカードの数字を取得
         cards = []
 
         for i in range(cards_num):
             recv_data = self.client_socket.recv(msg_size)
-            card_num = struct.unpack("!i", recv_data)[0]
+            card_num = struct.unpack("!I", recv_data)[0]
             cards.append(card_num)
-            self.client_socket.sendall(struct.pack("!i", 789))
+            self.client_socket.sendall(struct.pack("!I", 789))
 
         return cards
 
