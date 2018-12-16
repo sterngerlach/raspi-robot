@@ -119,6 +119,8 @@
 
     コンストラクタ。ロボットの設定を記述したディクショナリ`config_dict`を引数に取ります。`config_dict`は次のようになります(全てのノードを有効化する場合)。`enable`で始まるキーは必ず追加しておく必要があります。モータを使用する場合は、GPIOの端子やSPIチャネルが自動的に初期化されるため、各ノードのクラス内でこれらを初期化する必要はありません。
 
+    **顔検出ノード(`enable_webcam`)とトランプカードの検出ノード(`enable_card`)の両方を有効化することはできません(片方のみを有効化してください)**。
+
     ```python
     config = {
         "enable_motor": True,       # 左右のモータを有効化
@@ -126,12 +128,13 @@
         "enable_srf02": True,       # 超音波センサを有効化
         "enable_julius": True,      # 音声認識エンジンJuliusのノードを有効化
         "enable_openjtalk": True,   # 音声合成システムOpenJTalkのノードを有効化
-        "enable_speechapi": False,  # 音声認識(Google Cloud Speech API)を有効化
-        "enable_webcam": True,      # 人の顔を認識するウェブカメラを有効化
+        "enable_speechapi": False,  # 音声認識(Google Cloud Speech API)を有効化(非推奨)
+        "enable_webcam": True,      # 人の顔を認識するノードを有効化
+        "enable_card": False,       # トランプカードを認識するノードを有効化
 
         "motor": {},                # モータの設定(特に設定内容は無いため空のディクショナリを指定)
         "servo": {},                # サーボモータの設定(特になし)
-        "srf02": {
+        "srf02": {                          # 超音波センサの設定
             "distance_threshold": 15,       # 障害物に接近したと判定するための距離の閾値
             "near_obstacle_threshold": 5,   # 測定値を連続で何度下回ったときに障害物の接近と判断するか
             "interval": 0.25,               # 距離の計測を行う間隔(秒)
@@ -140,7 +143,18 @@
         "julius": {},               # Juliusの設定(特になし)
         "openjtalk": {},            # OpenJTalkの設定(特になし)
         "speechapi": {},            # Google Speech APIの設定(特になし)
-        "webcam": {}                # ウェブカメラの設定(特になし)
+        "webcam": {                         # 人の顔を認識するノードの設定
+            "camera_id": 0,                 # ウェブカメラのID
+            "interval": 1.0,                # 顔検出を行う間隔(秒)
+            "frame_width": 640,             # ウェブカメラの横方向の解像度
+            "frame_height": 480             # ウェブカメラの縦方向の解像度
+        },
+        "card": {                           # トランプカードを認識するノードの設定
+            "server_host": "192.168.0.123", # トランプカードの認識を行うサーバのホスト名またはIPアドレス
+            "camera_id": 0,                 # ウェブカメラのID
+            "frame_width": 640,             # ウェブカメラの横方向の解像度
+            "frame_height": 480             # ウェブカメラの縦方向の解像度
+        }
     }
 
     node_manager = NodeManager(config)
@@ -613,7 +627,7 @@ while True:
     指定された音声ファイルの再生が開始したことを表します。
 
     ```python
-    { "file_name": (再生された音声ファイル名), "state": "start" }
+    { "sender": "openjtalk", "content": { "file_name": (再生された音声ファイル名), "state": "start" } }
     ```
 
 - 音声ファイルの実行終了
@@ -621,7 +635,7 @@ while True:
     指定された音声ファイルの再生が終了したことを表します。
 
     ```python
-    { "file_name": (再生された音声ファイル名), "state": "done" }
+    { "sender": "openjtalk", "content": { "file_name": (再生された音声ファイル名), "state": "done" } }
     ```
 
 - 音声合成の開始
@@ -629,7 +643,7 @@ while True:
     指定された文章の合成が開始したことを表します。
 
     ```python
-    { "sentence": (指定された文章), "state": "start" }
+    { "sender": "openjtalk", "content": { "sentence": (指定された文章), "state": "start" } }
     ```
 
 - 音声合成の終了
@@ -637,12 +651,12 @@ while True:
     指定された文章の合成と音声ファイルの再生が終了したことを表します。
 
     ```python
-    { "sentence": (指定された文章), "state": "done" }
+    { "sender": "openjtalk", "content": { "sentence": (指定された文章), "state": "done" } }
     ```
 
 ### `GoogleSpeechApiNode`クラス
 
-`DataSenderNode`クラスを継承しており、認識された文章をアプリケーションに送信し続けます。
+`DataSenderNode`クラスを継承しており、認識された文章をアプリケーションに送信し続けます。**使用はお勧めしません**。
 
 #### ノードからアプリケーションに送られるメッセージ
 
@@ -664,17 +678,64 @@ while True:
 
 ### `WebCamNode`クラス
 
-#### 共有変数の内容
+#### ノードからアプリケーションに送られるメッセージ
 
-- `state_dict["capture_width"]`
+- 認識
 
-    キャプチャする画像の横幅を表します(240ピクセル)。
+    ウェブカメラでキャプチャされた画像から顔が検出された場合に送信されます。`faces`キーには、検出された顔の矩形領域のx座標(px)、y座標(px)、横幅(px)、縦幅(px)のタプルのリストが格納されています。検出されなかった場合にはメッセージは送信されません。
 
-- `state_dict["capture_height"]`
+    ```
+    {
+        "sender": "webcam",
+        "content": {
+            "state": "face-detected",
+            "faces": [(x0, y0, w0, h0), (x1, y1, w1, h1), ...]
+        }
+    }
+    ```
 
-    キャプチャする画像の高さを表します(180ピクセル)。
+### `CardDetectionNode`クラス
 
-- `state_dict["faces"]`
+#### アプリケーションからノードに送られるメッセージ
 
-    検出された顔の座標のリストを格納します。座標は、顔の矩形領域の左上のx座標、矩形領域の左上のy座標、矩形領域の横幅、矩形領域の高さの4つのタプルです。
+- トランプカードの認識
+
+    ウェブカメラに映るトランプカードの数字を認識します。結果の取得までには数秒程度の時間が必要です。
+
+    ```
+    node_manager.send_command("card", { "command": "detect" })
+    ```
+
+#### ノードからアプリケーションに送られるメッセージ
+
+- トランプカードの認識開始
+
+    トランプカードの認識処理を開始したことを表します。
+
+    ```
+    { "sender": "card", "content": { "command": "detect", "state": "start" } }
+    ```
+
+- トランプカードの認識終了
+
+    トランプカードの認識処理が終了したことを表します。`cards`キーには、認識されたトランプカードの数字のリストが格納されています。
+
+    ```
+    {
+        "sender": "card",
+        "content": {
+            "command": "detect",
+            "state": "detected",
+            "cards": (認識された数字のリスト)
+        }
+    }
+    ```
+
+- 命令の実行無視
+
+    ノードへの命令の実行が無視されたことを表します。`command`キーに指定するコマンド名が不正である場合に送出されます。
+
+    ```
+    { "sender": "card", "content": { "command": (無視されたコマンド名), "state": "ignored" } }
+    ```
 

@@ -92,7 +92,7 @@ class CardDetectionNode(CommandReceiverNode):
 
                 if cmd["command"] == "detect":
                     # 命令の実行開始をアプリケーションに伝達
-                    self.send_message("card", { "cmd": cmd["command"], "state": "start" })
+                    self.send_message("card", { "command": cmd["command"], "state": "start" })
 
                     # カードの検出を実行
                     cards = self.detect()
