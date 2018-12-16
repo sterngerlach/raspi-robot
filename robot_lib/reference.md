@@ -166,7 +166,7 @@
 
 - `send_command(name, cmd)`
 
-    引数`name`で指定されたノードにコマンド`cmd`を送信します。引数`cmd`はディクショナリ型でなければなりません。また、`name`に指定できるのは、`motor`(左右のモータ)、`servo0`(サーボモータ)、`srf02`(超音波センサ)、`julius`(Julius)、`openjtalk`(OpenJTalk)、`speechapi`(Google Cloud Speech API)、`webcam`(ウェブカメラ)のいずれかです(今後追加される可能性が高いです)。
+    引数`name`で指定されたノードにコマンド`cmd`を送信します。引数`cmd`はディクショナリ型でなければなりません。また、`name`に指定できるのは、`motor`(左右のモータ)、`servo`(サーボモータ)、`srf02`(超音波センサ)、`julius`(Julius)、`openjtalk`(OpenJTalk)、`speechapi`(Google Cloud Speech API)、`webcam`(ウェブカメラ)のいずれかです(今後追加される可能性が高いです)。
 
 - `get_node(name)`
 
@@ -540,8 +540,8 @@ while True:
     サーボモータへの命令の実行が開始されたことを表します。
 
     ```python
-    { "sender": "servo0", "content": { "command": { "angle": 135 }, "state": "start" } }
-    { "sender": "servo0", "content": { "command": { "value": 85 }, "state": "start" } }
+    { "sender": "servo", "content": { "command": { "angle": 135 }, "state": "start" } }
+    { "sender": "servo", "content": { "command": { "value": 85 }, "state": "start" } }
     ```
 
 - 命令の実行終了
@@ -549,8 +549,8 @@ while True:
     サーボモータへの命令の実行が終了したことを表します。
 
     ```python
-    { "sender": "servo0", "content": { "command": { "angle": 135 }, "state": "done" } }
-    { "sender": "servo0", "content": { "command": { "value": 85 }, "state": "done" } }
+    { "sender": "servo", "content": { "command": { "angle": 135 }, "state": "done" } }
+    { "sender": "servo", "content": { "command": { "value": 85 }, "state": "done" } }
     ```
 
 ### `Srf02Node`クラス

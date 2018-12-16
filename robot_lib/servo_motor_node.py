@@ -8,12 +8,10 @@ class ServoMotorNode(CommandReceiverNode):
     サーボモータを操作するクラス
     """
 
-    def __init__(self, process_manager, msg_queue, servo_id, servo_motor):
+    def __init__(self, process_manager, msg_queue, servo_motor):
         """コンストラクタ"""
         super().__init__(process_manager, msg_queue)
         
-        # サーボモータのID
-        self.servo_id = servo_id
         # サーボモータのインスタンス
         self.servo_motor = servo_motor
 
@@ -41,7 +39,7 @@ class ServoMotorNode(CommandReceiverNode):
                         .format(cmd))
 
                 # 命令の実行開始をアプリケーションに伝達
-                self.send_message("servo" + str(self.servo_id), { "command": cmd, "state": "start" })
+                self.send_message("servo", { "command": cmd, "state": "start" })
 
                 if "angle" in cmd:
                     # サーボモータの角度を指定
@@ -53,7 +51,7 @@ class ServoMotorNode(CommandReceiverNode):
                     self.servo_motor.write(cmd["value"])
                 
                 # 命令の実行終了をアプリケーションに伝達
-                self.send_message("servo" + str(self.servo_id), { "command": cmd, "state": "done" })
+                self.send_message("servo", { "command": cmd, "state": "done" })
 
                 # サーボモータへの命令が完了
                 self.command_queue.task_done()

@@ -136,8 +136,6 @@ class NodeManager(object):
 
         # サーボモータが使用するGPIOの端子
         self.__servo_motor_gpio_pin = 18
-        # サーボモータのID
-        self.__servo_id = 0
         # サーボモータを初期化
         # 48を指定したときに0度, 144を指定したときに180度となることを確認済み
         self.__servo_motor = ServoGwsS03t(
@@ -146,11 +144,10 @@ class NodeManager(object):
         # サーボモータのノードを作成
         self.__servo_motor_node = ServoMotorNode(
             self.__process_manager, self.__msg_queue,
-            self.__servo_id, self.__servo_motor)
+            self.__servo_motor)
 
         # サーボモータのノードを追加
-        self.__add_command_receiver_node(
-            "servo" + str(self.__servo_id), self.__servo_motor_node)
+        self.__add_command_receiver_node("servo", self.__servo_motor_node)
 
     def __setup_srf02_node(self, config_dict):
         """超音波センサのノードを初期化"""
