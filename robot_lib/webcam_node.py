@@ -64,6 +64,8 @@ class WebCamNode(DataSenderNode):
                 # 検出された顔領域をアプリケーションに伝達
                 if len(faces) > 0:
                     self.send_message("webcam", { "state": "face-detected", "faces": faces })
+                else:
+                    self.send_message("webcam", { "state": "face-not-detected", "faces": faces })
 
                 time.sleep(self.interval)
 
