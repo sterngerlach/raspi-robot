@@ -42,7 +42,12 @@ class KeyboardControlApp(object):
             "openjtalk": {},
             "julius": {},
             "speechapi": {},
-            "webcam": {},
+            "webcam": {
+                "camera_id": 0,
+                "interval": 2.0,
+                "frame_width": 320,
+                "frame_height": 240
+            },
             "card": {
                 "server_host": sys.argv[1],
                 "camera_id": 0,
@@ -55,7 +60,7 @@ class KeyboardControlApp(object):
         self.__node_manager = NodeManager(self.__config)
         self.__msg_queue = self.__node_manager.get_msg_queue()
         self.__motor_node = self.__node_manager.get_node("motor")
-        self.__servo_motor_node = self.__node_manager.get_node("servo0")
+        self.__servo_motor_node = self.__node_manager.get_node("servo")
         self.__srf02_state = self.__node_manager.get_node_state("srf02")
 
     def __talk(self, sentence):
@@ -335,9 +340,9 @@ class KeyboardControlApp(object):
                     self.__motor_node.stop()
                     self.__motor_node.run()
                 elif command == "cream":
-                    self.__node_manager.send_command("servo0", { "angle": 180 })
+                    self.__node_manager.send_command("servo", { "angle": 180 })
                     time.sleep(3)
-                    self.__node_manager.send_command("servo0", { "angle": 0 })
+                    self.__node_manager.send_command("servo", { "angle": 0 })
                     time.sleep(3)
                 elif command == "srf02":
                     print("srf02({0}): dist: {1} cm, mindist: {2} cm, near: {3}"

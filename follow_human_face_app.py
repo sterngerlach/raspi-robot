@@ -38,15 +38,20 @@ class FollowHumanFaceApp(object):
             },
             "julius": {},
             "openjtalk": {},
-            "webcam": {}
+            "webcam": {
+                "camera_id": 0,
+                "interval": 3.0,
+                "frame_width": 320,
+                "frame_height": 240
+            }
         }
 
         # ロボットのモジュールの管理クラスを初期化
         self.__node_manager = NodeManager(self.__config)
         self.__msg_queue = self.__node_manager.get_msg_queue()
         self.__webcam_state = self.__node_manager.get_node_state("webcam")
-        self.__webcam_capture_width = self.__webcam_state["capture_width"]
-        self.__webcam_capture_height = self.__webcam_state["capture_height"]
+        self.__webcam_capture_width = self.__config["webcam"]["frame_width"]
+        self.__webcam_capture_height = self.__config["webcam"]["frame_height"]
         self.__motor_node = self.__node_manager.get_node("motor")
         self.__openjtalk_node = self.__node_manager.get_node("openjtalk")
 
@@ -56,6 +61,9 @@ class FollowHumanFaceApp(object):
 
         # モータが命令を実行中かどうか
         self.__is_motor_executing = False
+
+        # 検出された顔の矩形領域のリスト
+        self.__detected_faces = []
 
         # アプリケーションを終了するかどうか
         self.__app_exit = False
@@ -76,26 +84,13 @@ class FollowHumanFaceApp(object):
                     self.__aplay("bye.wav")
                     break
 
-                # モータが命令を実行中である場合は顔検出を行わない
-                if self.__is_motor_executing:
-                    time.sleep(0.1)
-                    continue
-
-                # 検出された顔を元にモータへの命令を決定
-                if not "faces" in self.__webcam_state:
-                    # 適当な時間だけ待機
-                    time.sleep(0.1)
-                    continue
-
-                faces = self.__webcam_state["faces"]
-
-                if faces is None:
-                    # 適当な時間だけ待機
-                    time.sleep(0.1)
+                # 顔検出による操作ができない場合
+                if self.__is_motor_executing or len(self.__detected_faces) == 0:
+                    time.sleep(0.5)
                     continue
 
                 # 最初に検出された顔の座標を取得
-                face_x, face_y, face_w, face_h = faces[0]
+                face_x, face_y, face_w, face_h = self.__detected_faces[0]
                 center_x = face_x + face_w / 2
                 center_y = face_y + face_h / 2
                 
@@ -153,6 +148,9 @@ class FollowHumanFaceApp(object):
         elif msg["sender"] == "julius":
             # 音声認識エンジンJuliusからのメッセージを処理
             self.__handle_julius_msg(msg["content"])
+        elif msg["sender"] == "webcam":
+            # 顔検出ノードからのメッセージを処理
+            self.__handle_webcam_msg(msg["content"])
 
     def __talk(self, sentence):
         """音声合成エンジンOpenJTalkで指定された文章を話す"""
@@ -230,6 +228,14 @@ class FollowHumanFaceApp(object):
             self.__send_motor_command({ "command": "end" })
         else:
             self.__aplay("unknown-command.wav")
+
+    def __handle_webcam_msg(self, msg_content):
+        """顔検出ノードからのメッセージを処理"""
+        
+        if msg_content["state"] == "face-detected":
+            self.__detected_faces = msg_content["faces"]
+        elif msg_content["state"] == "face-not-detected":
+            self.__detected_faces = []
 
 def main():
     # アプリケーションのインスタンスを作成
