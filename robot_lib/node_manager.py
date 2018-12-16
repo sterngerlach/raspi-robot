@@ -162,7 +162,8 @@ class NodeManager(object):
             self.__process_manager, self.__msg_queue, self.__srf02,
             config_dict["distance_threshold"],
             config_dict["near_obstacle_threshold"],
-            config_dict["interval"], config_dict["addr_list"])
+            config_dict["interval"],
+            config_dict["addr_list"])
 
         # 超音波センサのノードを追加
         self.__add_data_sender_node("srf02", self.__srf02_node)
@@ -204,7 +205,11 @@ class NodeManager(object):
 
         # ウェブカメラのノードを作成
         self.__webcam_node = WebCamNode(
-            self.__process_manager, self.__msg_queue, camera_id=0)
+            self.__process_manager, self.__msg_queue,
+            config_dict["camera_id"],
+            config_dict["interval"],
+            config_dict["frame_width"],
+            config_dict["frame_height"])
         
         # ウェブカメラのノードを追加
         self.__add_data_sender_node("webcam", self.__webcam_node)
@@ -220,7 +225,7 @@ class NodeManager(object):
             config_dict["frame_width"],
             config_dict["frame_height"])
 
-        # か０度を検出するノードを追加
+        # カードを検出するノードを追加
         self.__add_command_receiver_node("card", self.__card_detection_node)
 
     def __add_data_sender_node(self, name, node):

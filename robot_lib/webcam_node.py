@@ -22,21 +22,20 @@ class WebCamNode(DataSenderNode):
         """カスケード分類器の作成"""
         cls.cascade_classifier_face = cv2.CascadeClassifier(cls.cascade_file_path)
 
-    def __init__(self, process_manager, msg_queue, camera_id):
+    def __init__(self, process_manager, msg_queue,
+                 camera_id, interval, frame_width, frame_height):
         """コンストラクタ"""
         super().__init__(process_manager, msg_queue)
 
         # ビデオ撮影デバイスの作成
         self.camera_id = camera_id
         self.video_capture = cv2.VideoCapture(camera_id)
-        # self.video_capture.set(cv2.CAP_PROP_FPS, 2)
         self.video_capture.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-        self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, 240)
-        self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 180)
-        
-        # キャプチャする画像のサイズをプロセス間で共有
-        self.state_dict["capture_width"] = self.video_capture.get(cv2.CAP_PROP_FRAME_WIDTH)
-        self.state_dict["capture_height"] = self.video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
+        self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
+
+        # 画像をキャプチャする間隔
+        self.interval = interval
         
     def __del__(self):
         """デストラクタ"""
@@ -62,8 +61,11 @@ class WebCamNode(DataSenderNode):
                     frame_gray, scaleFactor=1.1,
                     minNeighbors=5, minSize=(15, 15))
 
-                # 検出された顔領域を更新
-                self.state_dict["faces"] = faces if len(faces) >= 1 else None
+                # 検出された顔領域をアプリケーションに伝達
+                if len(faces) > 0:
+                    self.send_message("webcam", { "state": "face-detected", "faces": faces })
+
+                time.sleep(self.interval)
 
         except KeyboardInterrupt:
             # プロセスが割り込まれた場合
