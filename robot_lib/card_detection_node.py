@@ -120,7 +120,7 @@ class CardDetectionNode(CommandReceiverNode):
         # 画像データを作成
         ret, frame = self.video_capture.read()
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        ret, frame = cv2.imencode(".png", frame, [int(cv2.CV_IMWRITE_PNG_COMPRESSION), 3])
+        ret, frame = cv2.imencode(".png", frame, [int(cv2.IMWRITE_PNG_COMPRESSION), 5])
         frame_data = pickle.dumps(frame)
         frame_data = zlib.compress(frame_data)
         frame_size = len(frame_data)

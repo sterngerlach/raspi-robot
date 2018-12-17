@@ -60,7 +60,6 @@ class KeyboardControlApp(object):
         self.__node_manager = NodeManager(self.__config)
         self.__msg_queue = self.__node_manager.get_msg_queue()
         self.__motor_node = self.__node_manager.get_node("motor")
-        self.__servo_motor_node = self.__node_manager.get_node("servo")
         self.__srf02_state = self.__node_manager.get_node_state("srf02")
 
     def __talk(self, sentence):
