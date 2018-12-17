@@ -69,6 +69,9 @@ class CardDetectionNode(CommandReceiverNode):
         recv_data = struct.unpack("!i", recv_data)[0]
         print("CardDetectionNode::__init__(): magic value received: {0}".format(recv_data))
 
+        # 画像データを読み捨て
+        self.video_capture.read()
+
     def __del__(self):
         """デストラクタ"""
 
