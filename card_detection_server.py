@@ -48,6 +48,7 @@ def process_image(sock, addr):
         frame_data = recvall(sock, frame_size)
         frame_data = zlib.decompress(frame_data)
         frame_data = pickle.loads(frame_data)
+        frame_data = cv2.imdecode(frame_data, cv2.IMREAD_COLOR)
         print("process_image(): image received (shape: {0})".format(frame_data.shape))
 
         # 画像を検出

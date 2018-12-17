@@ -95,14 +95,21 @@ class CardDetectionNode(CommandReceiverNode):
                     self.send_message("card", { "command": cmd["command"], "state": "start" })
 
                     # カードの検出を実行
-                    cards = self.detect()
+                    try:
+                        cards = self.detect()
 
-                    print("CardDetectionNode::process_command(): number of cards detected: {0}"
-                          .format(len(cards)))
+                        print("CardDetectionNode::process_command(): number of cards detected: {0}"
+                              .format(len(cards)))
 
-                    # 検出結果をアプリケーションに伝達
-                    self.send_message("card",
-                        { "command": cmd["command"], "state": "detected", "cards": cards })
+                        # 検出結果をアプリケーションに伝達
+                        self.send_message("card",
+                            { "command": cmd["command"], "state": "detected", "cards": cards })
+                    except Exception as e:
+                        print("CardDetectionNode::process_command(): exception occurred: {}"
+                              .format(e))
+
+                        # 命令の無視をアプリケーションに伝達
+                        self.send_message("card", { "command": cmd["command"], "state": "ignored" })
                 else:
                     # 解釈できない命令の無視をアプリケーションに伝達
                     self.send_message("card", { "command": cmd["command"], "state": "ignored" })
