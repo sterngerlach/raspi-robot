@@ -59,18 +59,15 @@ class CardDetectionNode(CommandReceiverNode):
         send_data = struct.pack("!I", self.frame_width)
         self.client_socket.sendall(send_data)
         recv_data = self.client_socket.recv(msg_size)
-        recv_data = struct.unpack("!i", recv_data)[0]
+        recv_data = struct.unpack("!I", recv_data)[0]
         print("CardDetectionNode::__init__(): magic value received: {0}".format(recv_data))
         
         # キャプチャする画像の縦幅を送信
         send_data = struct.pack("!I", self.frame_height)
         self.client_socket.sendall(send_data)
         recv_data = self.client_socket.recv(msg_size)
-        recv_data = struct.unpack("!i", recv_data)[0]
+        recv_data = struct.unpack("!I", recv_data)[0]
         print("CardDetectionNode::__init__(): magic value received: {0}".format(recv_data))
-
-        # 画像データを読み捨て
-        self.video_capture.read()
 
     def __del__(self):
         """デストラクタ"""
@@ -126,6 +123,9 @@ class CardDetectionNode(CommandReceiverNode):
     
     def detect(self):
         """カードの検出"""
+
+        # 画像データを読み捨て
+        ret, frame = self.video_capture.read()
 
         # 画像データを作成
         ret, frame = self.video_capture.read()
