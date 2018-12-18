@@ -137,11 +137,16 @@ class IndianPokerApp(object):
         self.__julius_result = None
 
     def __on_ask_if_ready(self):
+        if self.__julius_result is None:
+            return
+
         if self.__opponent_said("はい"):
             self.__game_state = GameState.ASK_OPPONENT_CARD
         elif self.__opponent_said("まだ"):
             self.__aplay("bye.wav")
             self.__app_exit = True
+        else:
+            self.__julius_result = None
     
     def __on_ask_opponent_card(self):
         self.__talk("あなたのカードを見せてください")
@@ -173,6 +178,9 @@ class IndianPokerApp(object):
         self.__julius_result = None
     
     def __on_recognize_opponent_action(self):
+        if self.__julius_result is None:
+            return
+
         if self.__opponent_said("降りる"):
             self.__opponent_action = GameAction.FOLD
             self.__talk("降りるのですね")
@@ -181,6 +189,8 @@ class IndianPokerApp(object):
             self.__opponent_action = GameAction.CALL
             self.__talk("掛けるのですね")
             self.__game_state = GameState.CHOOSE_ACTION
+        else:
+            self.__julius_result = None
 
     def __on_choose_action(self):
         if self.__opponent_card > 10:
@@ -256,11 +266,14 @@ class IndianPokerApp(object):
             self.__talk("結果発表です")
             self.__game_state = GameState.RESULT
             
-    def __update_result(self):
+    def __on_result(self):
         if self.__pi_win_times == self.__opponent_win_times:
             self.__talk("引き分けですね")
         elif self.__pi_win_times > self.__opponent_win_times:
             self.__talk("私の勝ちです")
+            self.__talk("やったね")
+        else:
+            self.__talk("あなたの勝ちです")
             self.__talk("一緒に写真を撮りたいのでもっと近寄ってください")
             self.__node_manager.send_command("servo", { "angle": 105 })
             time.sleep(5)
@@ -269,9 +282,6 @@ class IndianPokerApp(object):
             self.__talk("お仕置きとして顔面にクリームパイを投げつけました")
             self.__talk("残念でしたね")
             self.__talk("顔と服をよく洗ってくださいね")
-        else:
-            self.__talk("あなたの勝ちです")
-            self.__talk("次は負けませんよ")
 
         self.__app_exit = True
    
@@ -330,7 +340,7 @@ class IndianPokerApp(object):
             GameState.ASK_CARD: self.__on_ask_card,
             GameState.RECOGNIZE_CARD: self.__on_recognize_card,
             GameState.ROUND_FINISHED: self.__on_round_finished,
-            GameState.RESULT: self.__result
+            GameState.RESULT: self.__on_result
         }
 
         # ゲームを実行
