@@ -34,7 +34,7 @@ class JuliusNode(DataSenderNode):
             [str(julius_startup_script_path)], stdout=sp.PIPE, shell=True)
 
         # JuliusのプロセスIDを取得
-        self.julius_pid = str(self.julius_process.stdout.read().decode("utf-8"))
+        self.julius_pid = str(self.julius_process.stdout.read().decode("utf-8", "ignore"))
         self.julius_pid = self.julius_pid.strip()
 
         print("JuliusNode::__init__(): julius launched with pid {0}"
@@ -87,7 +87,7 @@ class JuliusNode(DataSenderNode):
                 # 音声認識ができない場合はデータを受信
                 if "</RECOGOUT>\n." not in data:
                     # データを受信
-                    data += str(self.client_socket.recv(128).decode("utf-8"))
+                    data += str(self.client_socket.recv(128).decode("utf-8", "ignore"))
                     continue
                 
                 # 音声認識ができた場合の処理
