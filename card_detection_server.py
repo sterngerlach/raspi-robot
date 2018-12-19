@@ -11,7 +11,10 @@ import struct
 import time
 import zlib
 
-from cardSSD import card_detect
+try:
+    from cardSSD import card_detect
+except ImportError:
+    from card_ssd_dummy import card_detect
 
 def recvall(sock, data_length):
     data = b""
