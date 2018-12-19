@@ -111,9 +111,9 @@ class PseudoBlackjackApp(object):
             else:
                 return
         
-    def __julius_msg_word_contains(self, msg_content, word, accuracy_threshold):
+    def __julius_msg_word_contains(self, recognized_words, word, accuracy_threshold):
         """音声認識エンジンJuliusからのメッセージに指定された語句が含まれるかを判定"""
-        return len([recognized_word[0] for recognized_word in msg_content["words"] \
+        return len([recognized_word[0] for recognized_word in recognized_words \
             if recognized_word[0] == word and recognized_word[1] >= accuracy_threshold]) > 0
 
     def __opponent_said(self, word, accuracy_threshold=0.95):
@@ -125,7 +125,8 @@ class PseudoBlackjackApp(object):
     
     def __handle_card_msg(self, msg_content):
         """トランプカードを検出するノードからのメッセージを取得"""
-        self.__card_detection_result = msg_content["cards"]
+        if msg_content["state"] == "detected":
+            self.__card_detection_result = msg_content["cards"]
 
     def __update(self):
         """ゲームの状態を更新"""
@@ -298,7 +299,7 @@ class PseudoBlackjackApp(object):
             self.__pi_action = None
             self.__julius_result = None
             self.__card_detection_result = None
-            self.__game_times = GameState.ASK_OPPONENT_ACTION
+            self.__game_state = GameState.ASK_OPPONENT_ACTION
         else:
             self.__talk("結果発表です")
             self.__game_state = GameState.RESULT
