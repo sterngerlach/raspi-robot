@@ -111,9 +111,9 @@ class IndianPokerApp(object):
             else:
                 return
         
-    def __julius_msg_word_contains(self, msg_content, word, accuracy_threshold):
+    def __julius_msg_word_contains(self, recognized_words, word, accuracy_threshold):
         """音声認識エンジンJuliusからのメッセージに指定された語句が含まれるかを判定"""
-        return len([recognized_word[0] for recognized_word in msg_content["words"] \
+        return len([recognized_word[0] for recognized_word in recognized_words \
             if recognized_word[0] == word and recognized_word[1] >= accuracy_threshold]) > 0
 
     def __opponent_said(self, word, accuracy_threshold=0.95):
@@ -125,7 +125,8 @@ class IndianPokerApp(object):
     
     def __handle_card_msg(self, msg_content):
         """トランプカードを検出するノードからのメッセージを取得"""
-        self.__card_detection_result = msg_content["cards"]
+        if msg_content["state"] == "detected":
+            self.__card_detection_result = msg_content["cards"]
         
     def __update(self):
         """ゲームの状態を更新"""
@@ -172,7 +173,7 @@ class IndianPokerApp(object):
     def __on_ask_opponent_action(self):
         self.__talk("あなたはどうしますか")
         self.__talk("降りる")
-        self.__talk("勝負する")
+        self.__talk("掛ける")
         self.__talk("この中から行動を選択できます")
         self.__game_state = GameState.RECOGNIZE_OPPONENT_ACTION
         self.__julius_result = None
@@ -193,7 +194,7 @@ class IndianPokerApp(object):
             self.__julius_result = None
 
     def __on_choose_action(self):
-        if self.__opponent_card > 10:
+        if self.__opponent_card > 11:
             self.__pi_action = GameAction.FOLD
             self.__talk("降ります")
             self.__game_state = GameState.TAKE_ACTION
