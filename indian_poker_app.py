@@ -173,8 +173,8 @@ class IndianPokerApp(object):
         
     def __on_ask_opponent_action(self):
         self.__talk("あなたはどうしますか")
-        self.__talk("降りる")
-        self.__talk("掛ける")
+        self.__aplay("fold.wav")
+        self.__aplay("call.wav")
         self.__talk("この中から行動を選択できます")
         self.__game_state = GameState.RECOGNIZE_OPPONENT_ACTION
         self.__julius_result = None
@@ -197,11 +197,11 @@ class IndianPokerApp(object):
     def __on_choose_action(self):
         if self.__opponent_card > 11:
             self.__pi_action = GameAction.FOLD
-            self.__talk("降ります")
+            self.__aplay("fold2.wav")
             self.__game_state = GameState.TAKE_ACTION
         else:
             self.__pi_action = GameAction.CALL
-            self.__talk("掛けます")
+            self.__talk("call2.wav")
             self.__game_state = GameState.TAKE_ACTION
 
     def __on_take_action(self):
