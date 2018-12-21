@@ -2,6 +2,8 @@
 進め	s u s u m e
 % STOP
 ストップ	s u t o q p u
+% BRAKE
+ブレーキ	b u r e: k i
 % DAMARE
 黙れ	d a m a r e
 % MAGARE
@@ -14,6 +16,18 @@
 左	h i d a r i
 % NI
 に	n i
+% YES
+はい	h a i
+% NO
+いいえ	i i e
+% NOT_YET
+まだ	m a d a
+% FOLD
+降りる	o r i r u
+% CALL
+掛ける	k a k e r u
+% TOUCH
+タッチ	t a q ch i
 % NS_B
 [s]     silB
 % NS_E
