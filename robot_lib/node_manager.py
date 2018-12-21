@@ -19,6 +19,7 @@ from openjtalk_node import OpenJTalkNode
 from google_speech_api_node import GoogleSpeechApiNode
 from webcam_node import WebCamNode
 from card_detection_node import CardDetectionNode
+from motion_detection_node import MotionDetectionNode
 
 class NodeManager(object):
     """
@@ -80,6 +81,10 @@ class NodeManager(object):
         # カード検出のノードを初期化
         if self.__config_dict["enable_card"]:
             self.__setup_card_detection_node(config_dict["card"])
+
+        # 人の動き検出のノードを初期化
+        if self.__config_dict["enable_motion"]:
+            self.__setup_motion_detection_node(config_dict["motion"])
 
     def __setup_gpio(self):
         """GPIOの初期化"""
@@ -224,6 +229,19 @@ class NodeManager(object):
 
         # カードを検出するノードを追加
         self.__add_command_receiver_node("card", self.__card_detection_node)
+
+    def __setup_motion_detection_node(self, config_dict):
+        """人の動きを検出するノードを初期化"""
+
+        # 人の動きを検出するノードを作成
+        self.__motion_detection_node = MotionDetectionNode(
+            self.__process_manager, self.__msg_queue,
+            config_dict["camera_id"], config_dict["interval"],
+            config_dict["frame_width"], config_dict["frame_height"],
+            config_dict["contour_area_min"])
+
+        # 人の動きを検出するノードを追加
+        self.__add_command_receiver_node("motion", self.__motion_detection_node)
 
     def __add_data_sender_node(self, name, node):
         """指定された名前を持つノードを追加"""
