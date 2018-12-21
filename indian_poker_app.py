@@ -60,6 +60,7 @@ class IndianPokerApp(object):
             "enable_speechapi": False,
             "enable_webcam": False,
             "enable_card": True,
+            "enable_motion": False,
             "motor": {},
             "servo": {},
             "openjtalk": {},

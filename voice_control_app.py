@@ -29,6 +29,8 @@ class VoiceControlApp(object):
             "enable_openjtalk": True,
             "enable_speechapi": False,
             "enable_webcam": False,
+            "enable_card": False,
+            "enable_motion": False,
             "motor": {},
             "srf02": {
                 "distance_threshold": 15,
