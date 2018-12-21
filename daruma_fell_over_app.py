@@ -26,10 +26,12 @@ class GameState(Enum):
     RULE_DESCRIPTION = 3
     WAIT_A_MOMENT = 4
     SPEAK = 5
-    TURN_AROUND = 6
-    DETECT_MOTION = 7
-    TOUCHED = 8
-    RESULT = 9
+    SPEAK2 = 6
+    SPEAK3 = 7
+    TURN_AROUND = 8
+    DETECT_MOTION = 9
+    TOUCHED = 10
+    RESULT = 11
 
 class DarumaFellOverApp(object):
     """
@@ -53,13 +55,13 @@ class DarumaFellOverApp(object):
             "motor": {},
             "servo": {},
             "openjtalk": {},
-            "julius": {}
+            "julius": {},
             "motion": {
                 "camera_id": 0,
                 "interval": 0.5,
                 "frame_width": 640,
                 "frame_height": 480,
-                "contour_area_min": 750
+                "contour_area_min": 2000
             }
         }
 
@@ -123,6 +125,10 @@ class DarumaFellOverApp(object):
 
     def __handle_motion_msg(self, msg_content):
         """人の動きを検出するノードからのメッセージを取得"""
+        print("DarumaFellOverApp::__handle_motion_msg(): " +
+              "message sent from MotionDetectionNode: {}"
+              .format(msg_content))
+
         if msg_content["state"] == "motion-detected":
             self.__motion_detected = True
 
@@ -173,38 +179,33 @@ class DarumaFellOverApp(object):
         elif __speech_type == 3:
             self.__talk("だ、る、ま、さ、ん、がころん")
         elif __speech_type == 4:
-            self.__talk("だるまさん、が、こ、ろ、ん、")
-
+            self.__talk("だるまさん、が、こ、ろーん、")
+        
+        self.__game_state = GameState.SPEAK2
+        
+    def __on_speak2(self):
         if self.__opponent_said("タッチ"):
             self.__game_state = GameState.TOUCHED
             return
 
         # 適当な時間だけ待つ
-        self.__wait_time = random.uniform(0.0, 1.0)
+        self.__wait_time = random.uniform(0.0, 2.0)
         time.sleep(self.__wait_time)
+
+        self.__game_state = GameState.SPEAK3
         
+    def __on_speak3(self):
         if self.__opponent_said("タッチ"):
             self.__game_state = GameState.TOUCHED
             return
-
-        self.__talk("だ")
-
+        
+        self.__talk("だ、")
         self.__game_state = GameState.TURN_AROUND
 
     def __on_turn_around(self):
-        if self.__opponent_said("タッチ"):
-            self.__game_state = GameState.TOUCHED
-            return
-
         # サーボモータを回転
         self.__node_manager.send_command("servo", { "angle": 90 })
         time.sleep(1.0)
-
-        if self.__opponent_said("タッチ"):
-            self.__game_state = GameState.TOUCHED
-            self.__node_manager.send_command("servo", { "angle": 0 })
-            time.sleep(1.0)
-            return
         
         # 人の動きの検出を開始
         self.__node_manager.send_command("motion", { "command": "start" })
@@ -223,11 +224,13 @@ class DarumaFellOverApp(object):
             return
 
         if self.__motion_detected:
-            self.__game_state = GameState.RESULT
+            self.__talk("動きましたね")
+            self.__motion_detected = False
             self.__pi_win = True
             self.__node_manager.send_command("motion", { "command": "end" })
             self.__node_manager.send_command("servo", { "angle": 0 })
             time.sleep(1.0)
+            self.__game_state = GameState.RESULT
             return
 
     def __on_touched(self):
@@ -287,7 +290,9 @@ class DarumaFellOverApp(object):
             GameState.ASK_IF_READY: self.__on_ask_if_ready,
             GameState.RULE_DESCRIPTION: self.__on_rule_description,
             GameState.WAIT_A_MOMENT: self.__on_wait_a_moment,
-            GameState.SPEAK: self.__on_speak:
+            GameState.SPEAK: self.__on_speak,
+            GameState.SPEAK2: self.__on_speak2,
+            GameState.SPEAK3: self.__on_speak3,
             GameState.TURN_AROUND: self.__on_turn_around,
             GameState.DETECT_MOTION: self.__on_detect_motion,
             GameState.TOUCHED: self.__on_touched,

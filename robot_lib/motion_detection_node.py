@@ -106,7 +106,7 @@ class MotionDetectionNode(CommandReceiverNode):
 
         # 画像データを取得
         ret, frame = self.video_capture.read()
-        frame = cv2.resize(frame, fx=0.5, fy=0.5)
+        frame = cv2.resize(frame, None, fx=0.5, fy=0.5)
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         frame = cv2.GaussianBlur(frame, (15, 15), 0)
         
@@ -118,9 +118,12 @@ class MotionDetectionNode(CommandReceiverNode):
         # 基準の画像と現在の画像との差分を計算
         frame_delta = cv2.absdiff(self.first_frame, frame)
         # 差分が小さいものはノイズと考えて無視
-        frame_delta = cv2.threshold(frame_delta, 15, 255, cv2.THRESH_BINARY)[1]
+        frame_delta = cv2.threshold(frame_delta, 40, 255, cv2.THRESH_BINARY)[1]
         # 差分が一定値以上の部分を広げて輪郭を形成
         frame_delta = cv2.dilate(frame_delta, None, iterations=2)
+
+        cv2.imshow("thresholded", frame_delta)
+        cv2.waitKey(1)
         
         # 輪郭を差分画像から取り出し
         contours = cv2.findContours(frame_delta.copy(),
