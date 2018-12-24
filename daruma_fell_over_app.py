@@ -52,6 +52,7 @@ class DarumaFellOverApp(object):
             "enable_webcam": False,
             "enable_card": False,
             "enable_motion": True,
+            "enable_face": True,
             "motor": {},
             "servo": {},
             "openjtalk": {},
@@ -62,6 +63,10 @@ class DarumaFellOverApp(object):
                 "frame_width": 640,
                 "frame_height": 480,
                 "contour_area_min": 2000
+            },
+            "face": {
+                "screen_width": 640,
+                "screen_height": 480
             }
         }
 
@@ -199,7 +204,7 @@ class DarumaFellOverApp(object):
             self.__game_state = GameState.TOUCHED
             return
         
-        self.__talk("だ、")
+        self.__talk("だー")
         self.__game_state = GameState.TURN_AROUND
 
     def __on_turn_around(self):

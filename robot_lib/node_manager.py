@@ -20,6 +20,7 @@ from google_speech_api_node import GoogleSpeechApiNode
 from webcam_node import WebCamNode
 from card_detection_node import CardDetectionNode
 from motion_detection_node import MotionDetectionNode
+from facial_detection_node import FacialExpressionNode
 
 class NodeManager(object):
     """
@@ -85,6 +86,10 @@ class NodeManager(object):
         # 人の動き検出のノードを初期化
         if self.__config_dict["enable_motion"]:
             self.__setup_motion_detection_node(config_dict["motion"])
+
+        # 顔の表情のノードを初期化
+        if self.__config_dict["enable_face"]:
+            self.__setup_facial_expression_node(config_dict["face"])
 
     def __setup_gpio(self):
         """GPIOの初期化"""
@@ -242,6 +247,17 @@ class NodeManager(object):
 
         # 人の動きを検出するノードを追加
         self.__add_command_receiver_node("motion", self.__motion_detection_node)
+
+    def __setup_facial_expression_node(self, config_dict):
+        """顔の表情を画面に表示するノードを初期化"""
+
+        # 顔の表情を画面に表示するノードを作成
+        self.__facial_expression_node = FacialExpressionNode(
+            self.__process_manager, self.__msg_queue,
+            config_dict["window_width"], config_dict["window_height"])
+        
+        # 顔の表情を表示するノードを追加
+        self.__add_command_receiver_node("face", self.__facial_expression_node)
 
     def __add_data_sender_node(self, name, node):
         """指定された名前を持つノードを追加"""

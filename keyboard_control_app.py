@@ -32,6 +32,7 @@ class KeyboardControlApp(object):
             "enable_webcam": False,
             "enable_card": True,
             "enable_motion": False,
+            "enable_face": True,
             "motor": {},
             "servo": {},
             "srf02": {
@@ -54,6 +55,10 @@ class KeyboardControlApp(object):
                 "camera_id": 0,
                 "frame_width": 640,
                 "frame_height": 480
+            },
+            "face": {
+                "screen_width": 640,
+                "screen_height": 480
             }
         }
 

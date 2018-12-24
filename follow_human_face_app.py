@@ -29,6 +29,9 @@ class FollowHumanFaceApp(object):
             "enable_openjtalk": True,
             "enable_speechapi": False,
             "enable_webcam": True,
+            "enable_card": False,
+            "enable_motion": False,
+            "enable_face": False,
             "motor": {},
             "srf02": {
                 "distance_threshold": 15,

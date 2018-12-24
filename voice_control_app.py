@@ -31,6 +31,7 @@ class VoiceControlApp(object):
             "enable_webcam": False,
             "enable_card": False,
             "enable_motion": False,
+            "enable_face": False,
             "motor": {},
             "srf02": {
                 "distance_threshold": 15,
