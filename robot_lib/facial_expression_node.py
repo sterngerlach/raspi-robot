@@ -7,7 +7,8 @@ import os
 import time
 
 import tkinter as tk
-import PIL
+import PIL.Image
+import PIL.ImageTk
 
 from command_receiver_node import CommandReceiverNode
 
@@ -33,6 +34,10 @@ class FacialExpressionNode(CommandReceiverNode):
         """表情の表示命令を処理"""
 
         self.tk_root = tk.Tk()
+        screen_width = self.tk_root.winfo_screenwidth()
+        screen_height = self.tk_root.winfo_screenheight()
+        self.tk_root.geometry("{}x{}+0+0".format(screen_width, screen_height))
+
         self.tk_label = tk.Label(self.tk_root)
         self.tk_label.pack()
 
@@ -48,9 +53,7 @@ class FacialExpressionNode(CommandReceiverNode):
                         # 指定された表情を表示
                         img_path = self.img_dir.joinpath(cmd["file-name"])
                         img = PIL.ImageTk.PhotoImage(PIL.Image.open(str(img_path)))
-                        self.tk_label.configure(image=img,
-                                                width=self.window_width,
-                                                height=self.window_height)
+                        self.tk_label.configure(image=img)
 
                     # 表情の更新を完了
                     self.command_queue.task_done()

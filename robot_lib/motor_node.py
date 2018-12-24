@@ -32,7 +32,9 @@ class MotorNode(CommandReceiverNode):
         """デストラクタ"""
 
         # 2つのモータを停止
-        self.stop()
+        # self.stop()
+        self.motor_left.run(0)
+        self.motor_right.run(0)
 
         # 2つのモータの使用を終了
         self.end()

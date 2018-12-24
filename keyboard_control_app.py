@@ -100,8 +100,11 @@ class KeyboardControlApp(object):
         keyboard_input_thread.start()
         
         # スレッドの終了を待機(Ctrl-Cで終了)
-        msg_thread.join()
-        keyboard_input_thread.join()
+        try:
+            msg_thread.join()
+            keyboard_input_thread.join()
+        except KeyboardInterrupt:
+            print("KeyboardControlApp::run(): KeyboardInterrupt occurred")
     
     def __print_available_commands(self):
         with self.__lock:
@@ -110,7 +113,7 @@ class KeyboardControlApp(object):
                   "set-speed-imm, set-left-speed-imm, set-right-speed-imm, " +
                   "move-distance, rotate0, rotate1, rotate2, " +
                   "pivot-turn, spin-turn, wait, stop, end, " +
-                  "cancel, cream, srf02, talk, aplay, detect")
+                  "cancel, cream, srf02, talk, aplay, detect, face")
 
     def __print_set_speed_usage(self):
         with self.__lock:
@@ -178,6 +181,10 @@ class KeyboardControlApp(object):
         with self.__lock:
             print("aplay usage: aplay <file-name>")
 
+    def __print_face_usage(self):
+        with self.__lock:
+            print("face usage: face <file-name>")
+
     def __handle_msg(self):
         """ノードからアプリケーションに届くメッセージの処理"""
         try:
@@ -201,6 +208,9 @@ class KeyboardControlApp(object):
             # プロセスが割り込まれた場合
             with self.__lock:
                 print("KeyboardControlApp::__handle_msg(): KeyboardInterrupt occurred")
+        except ConnectionResetError:
+            with self.__lock:
+                print("KeyboardControlApp::__handle_msg(): ConnectionResetError occurred")
 
     def __handle_keyboard_input(self):
         """キーボード入力を処理"""
@@ -367,6 +377,11 @@ class KeyboardControlApp(object):
                         self.__aplay(commands[1])
                 elif command == "detect":
                     self.__node_manager.send_command("card", { "command": "detect" })
+                elif command == "face":
+                    if len(commands) < 2:
+                        self.__print_face_usage()
+                    else:
+                        self.__node_manager.send_command("face", { "file-name": commands[1] })
                 else:
                     self.__print_available_commands()
 
