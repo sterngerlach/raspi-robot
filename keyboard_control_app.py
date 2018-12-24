@@ -57,8 +57,8 @@ class KeyboardControlApp(object):
                 "frame_height": 480
             },
             "face": {
-                "screen_width": 640,
-                "screen_height": 480
+                "window_width": 640,
+                "window_height": 480
             }
         }
 

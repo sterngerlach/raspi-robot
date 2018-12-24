@@ -65,8 +65,8 @@ class DarumaFellOverApp(object):
                 "contour_area_min": 2000
             },
             "face": {
-                "screen_width": 640,
-                "screen_height": 480
+                "window_width": 640,
+                "window_height": 480
             }
         }
 
