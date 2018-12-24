@@ -4,6 +4,7 @@
 
 import os
 import queue
+import random
 import sys
 import time
 
@@ -99,6 +100,89 @@ class IndianPokerApp(object):
         """トランプカードの検出命令を送信"""
         self.__node_manager.send_command("card", { "command": "detect" })
 
+    def __update_likely_to_lose_value(self, delta):
+        """ロボットが負けそうかどうかの指標を更新"""
+        self.__likely_to_lose_value = max(0, min(100, self.__likely_to_lose_value + delta))
+        
+    def __sleep_randomly(self, sleep_min, sleep_max):
+        """ランダムな時間だけスリープ"""
+        time.sleep(random.uniform(sleep_min, sleep_max))
+
+    def __face(self, file_name):
+        """表情の設定"""
+        self.__node_manager.send_command("face", { "file-name": file_name })
+
+    def __update_face(self):
+        """表情の変化"""
+        if self.__likely_to_lose_value > 90:
+            self.__face("sad.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("loudly-crying.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("super-sad.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("sad.png")
+        elif self.__likely_to_lose_value > 80:
+            self.__face("sad.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("super-sad.png")
+            self.__sleep_randomly(0.2, 0.3)
+            self.__face("sad.png")
+        elif self.__likely_to_lose_value > 70:
+            self.__face("sad.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("disappointed.png")
+            self.__sleep_randomly(0.2, 0.3)
+            self.__face("sad.png")
+        elif self.__likely_to_lose_value > 60:
+            self.__face("unhappy.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("unamused.png")
+            self.__sleep_randomly(0.2, 0.3)
+            self.__face("expressionless.png")
+        elif self.__likely_to_lose_value > 50:
+            self.__face("thinking.png")
+            self.__sleep_randomly(0.2, 0.3)
+            self.__face("unamused.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("slightly-smiling.png")
+        elif self.__likely_to_lose_value > 40:
+            self.__face("slightly-smiling.png")
+            self.__sleep_randomly(0.2, 0.3)
+            self.__face("wink.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("slightly-smiling.png")
+        elif self.__likely_to_lose_value > 30:
+            self.__face("slightly-smiling.png")
+            self.__sleep_randomly(0.2, 0.3)
+            self.__face("relieved.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("slightly-smiling.png")
+        elif self.__likely_to_lose_value > 20:
+            self.__face("slightly-smiling.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("blushed-smiling.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("shy.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("slightly-smiling.png")
+        elif self.__likely_to_lose_value > 10:
+            self.__face("very-happy.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("smiling-with-closed-eyes.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("slightly-smiling.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("very-happy.png")
+        else:
+            self.__face("very-happy.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("devil.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("very-happy.png")
+
+        self.__update_likely_to_lose_value(random.randint(-10, 10))
+    
     def __input(self):
         """ノードからアプリケーションへのメッセージを処理"""
         while True:
@@ -139,6 +223,7 @@ class IndianPokerApp(object):
         self.__state_func_table[self.__game_state]()
 
     def __on_init(self):
+        self.__face("slightly-smiling.png")
         self.__talk("インディアンポーカーの準備はできましたか")
         self.__game_state = GameState.ASK_IF_READY
         self.__julius_result = None
@@ -148,14 +233,19 @@ class IndianPokerApp(object):
             return
 
         if self.__opponent_said("はい"):
+            self.__face("angel.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("slightly-smiling.png")
             self.__game_state = GameState.ASK_OPPONENT_CARD
         elif self.__opponent_said("まだ"):
+            self.__face("wink.png")
             self.__aplay("bye.wav")
             self.__app_exit = True
         else:
             self.__julius_result = None
     
     def __on_ask_opponent_card(self):
+        self.__face("slightly-smiling.png")
         self.__talk("あなたのカードを見せてください")
         self.__detect()
         self.__game_state = GameState.RECOGNIZE_OPPONENT_CARD
@@ -168,19 +258,41 @@ class IndianPokerApp(object):
         if len(self.__card_detection_result) > 0:
             # 最初に検出されたカードの番号を使用
             self.__opponent_card = self.__card_detection_result[0]
+
+            # カードの番号によって表情を変化させる
+            if self.__opponent_card < 3:
+                self.__update_likely_to_lose_value(-30)
+            elif self.__opponent_card < 5:
+                self.__update_likely_to_lose_value(-20)
+            elif self.__opponent_card < 7:
+                self.__update_likely_to_lose_value(-10)
+            elif self.__opponent_card < 9:
+                self.__update_likely_to_lose_value(0)
+            elif self.__opponent_card < 11:
+                self.__update_likely_to_lose_value(20)
+            else:
+                self.__update_likely_to_lose_value(30)
+
+            self.__update_face()
+
             self.__card_detection_result = None
             self.__talk("分かりました")
             self.__game_state = GameState.ASK_OPPONENT_ACTION
         else:
+            self.__face("dizzy.png")
             self.__talk("あなたのカードが見えません")
             self.__game_state = GameState.ASK_OPPONENT_CARD
             self.__card_detection_result = None
         
     def __on_ask_opponent_action(self):
+        self.__face("slightly-smiling.png")
         self.__talk("あなたはどうしますか")
-        self.__aplay("fold.wav")
-        self.__aplay("call.wav")
-        self.__talk("この中から行動を選択できます")
+
+        if self.__game_times < 2:
+            self.__aplay("fold.wav")
+            self.__aplay("call.wav")
+            self.__talk("この中から行動を選択できます")
+
         self.__game_state = GameState.RECOGNIZE_OPPONENT_ACTION
         self.__julius_result = None
     
@@ -200,13 +312,15 @@ class IndianPokerApp(object):
             self.__julius_result = None
 
     def __on_choose_action(self):
+        self.__update_face()
+
         if self.__opponent_card > 11:
             self.__pi_action = GameAction.FOLD
             self.__aplay("fold2.wav")
             self.__game_state = GameState.TAKE_ACTION
         else:
             self.__pi_action = GameAction.CALL
-            self.__talk("call2.wav")
+            self.__aplay("call2.wav")
             self.__game_state = GameState.TAKE_ACTION
 
     def __on_take_action(self):
@@ -217,6 +331,7 @@ class IndianPokerApp(object):
             self.__game_state = GameState.ASK_CARD
     
     def __on_ask_card(self):
+        self.__update_face()
         self.__talk("私のカードを見せてください")
         self.__detect()
         self.__game_state = GameState.RECOGNIZE_CARD
@@ -229,6 +344,23 @@ class IndianPokerApp(object):
         if len(self.__card_detection_result) > 0:
             # 最初に検出されたカードの番号を使用
             self.__pi_card = self.__card_detection_result[0]
+
+            # カードの番号によって表情を変化させる
+            if self.__opponent_card - self.__pi_card > 5:
+                self.__update_likely_to_lose_value(-30)
+            elif self.__opponent_card - self.__pi_card > 3:
+                self.__update_likely_to_lose_value(-20)
+            elif self.__opponent_card - self.__pi_card > 1:
+                self.__update_likely_to_lose_value(-10)
+            elif self.__opponent_card - self.__pi_card > -1:
+                self.__update_likely_to_lose_value(0)
+            elif self.__opponent_card - self.__pi_card > -3:
+                self.__update_likely_to_lose_value(20)
+            elif self.__opponent_card - self.__pi_card > -5:
+                self.__update_likely_to_lose_value(30)
+
+            self.__update_face()
+
             self.__card_detection_result = None
             self.__talk("分かりました")
             self.__game_state = GameState.ROUND_FINISHED
@@ -240,29 +372,78 @@ class IndianPokerApp(object):
     def __on_round_finished(self):
         if self.__pi_action == GameAction.FOLD and \
             self.__opponent_action == GameAction.FOLD:
+            self.__face("expressionless.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("unamused.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("unhappy.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("expressionless.png")
             self.__talk("引き分けですね")
         elif self.__pi_action == GameAction.FOLD:
+            self.__face("angry.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("super-angry.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("mad-devil.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("angry.png")
             self.__talk("私の負けです")
+            self.__face("super-angry.png")
             self.__talk("悔しいなあ")
+            self.__face("angry.png")
             self.__opponent_win_times += 1
         elif self.__opponent_action == GameAction.FOLD:
+            self.__face("smiling-with-closed-eyes.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("smiling-with-tears.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("tongue-out-1.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("tongue-out-2.png")
             self.__talk("あなたの負けです")
+            self.__face("tongue-out-1.png")
             self.__talk("残念でしたね")
+            self.__face("smiling-with-closed-eyes.png")
             self.__pi_win_times += 1
         else:
             if self.__pi_card > self.__opponent_card:
+                self.__face("very-happy.png")
+                self.__sleep_randomly(0.1, 0.2)
+                self.__face("smiling-with-closed-eyes.png")
+                self.__sleep_randomly(0.1, 0.2)
+                self.__face("very-happy.png")
+                self.__sleep_randomly(0.1, 0.2)
+                self.__face("wink.png")
+                self.__sleep_randomly(0.1, 0.2)
+                self.__face("sunglasses.png")
+                self.__sleep_randomly(0.1, 0.2)
                 self.__talk("私の勝ちです")
+                self.__face("slightly-smiling.png")
                 self.__pi_win_times += 1
             elif self.__pi_card < self.__opponent_card:
+                self.__face("slightly-smiling.png")
                 self.__talk("あなたの勝ちです")
+                self.__face("devil.png")
                 self.__talk("おめでとう")
+                self.__face("slightly-smiling.png")
                 self.__opponent_win_times += 1
             else:
+                self.__face("expressionless.png")
+                self.__sleep_randomly(0.1, 0.2)
+                self.__face("unamused.png")
+                self.__sleep_randomly(0.1, 0.2)
+                self.__face("unhappy.png")
+                self.__sleep_randomly(0.1, 0.2)
+                self.__face("expressionless.png")
                 self.__talk("引き分けですね")
         
+        self.__update_face()
+
         self.__game_times += 1
 
         if self.__game_times < 5:
+            self.__face("slightly-smiling.png")
             self.__talk("次の試合をやりましょう")
             self.__opponent_card = None
             self.__pi_card = None
@@ -275,19 +456,39 @@ class IndianPokerApp(object):
             
     def __on_result(self):
         if self.__pi_win_times == self.__opponent_win_times:
+            self.__face("unhappy.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("unamused.png")
+            self.__sleep_randomly(0.1, 0.2)
+            self.__face("unhappy.png")
             self.__talk("引き分けですね")
         elif self.__pi_win_times > self.__opponent_win_times:
+            self.__face("smiling-with-closed-eyes.png")
             self.__talk("私の勝ちです")
+            self.__face("tongue-out-1.png")
             self.__talk("やったね")
+            self.__face("tongue-out-2.png")
         else:
+            self.__face("slightly-smiling.png")
             self.__talk("あなたの勝ちです")
+            self.__face("devil.png")
             self.__talk("一緒に写真を撮りたいのでもっと近寄ってください")
+            self.__face("tongue-out-1.png")
             self.__node_manager.send_command("servo", { "angle": 105 })
-            time.sleep(5)
+            self.__node_manager.send_command("motor", {
+                "command": "set-speed-imm", "speed_left": 5000, "speed_right": 5000 })
+            self.__face("tongue-out-2.png")
+            time.sleep(3)
+            self.__face("smiling-with-tears.png")
+            self.__node_manager.send_command("motor", {
+                "command": "set-speed-imm", "speed_left": 0, "speed_right": 0 })
             self.__node_manager.send_command("servo", { "angle": 0 })
             time.sleep(3)
+            self.__face("smiling-with-closed-eyes.png")
             self.__talk("お仕置きとして顔面にクリームパイを投げつけました")
+            self.__face("devil.png")
             self.__talk("残念でしたね")
+            self.__face("tongue-out-1.png")
             self.__talk("顔と服をよく洗ってくださいね")
 
         self.__app_exit = True
@@ -333,6 +534,9 @@ class IndianPokerApp(object):
         self.__pi_card = None
         self.__opponent_action = None
         self.__pi_action = None
+        
+        # ロボットが負けそうかどうか
+        self.__likely_to_lose_value = 25
 
         # 状態と実行される関数のディクショナリ
         self.__state_func_table = {
