@@ -20,7 +20,7 @@ from google_speech_api_node import GoogleSpeechApiNode
 from webcam_node import WebCamNode
 from card_detection_node import CardDetectionNode
 from motion_detection_node import MotionDetectionNode
-from facial_detection_node import FacialExpressionNode
+from facial_expression_node import FacialExpressionNode
 
 class NodeManager(object):
     """
