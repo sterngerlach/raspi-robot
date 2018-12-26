@@ -155,7 +155,7 @@ class DarumaFellOverApp(object):
         if self.julius_result is None:
             return
 
-        if self.opponent_said("はい"):
+        if self.opponent_said("はい") or self.opponent_said("うん"):
             self.game_state = GameState.RULE_DESCRIPTION
         elif self.opponent_said("まだ"):
             self.aplay("bye.wav")

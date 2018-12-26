@@ -51,7 +51,7 @@ class FacialExpressionNode(CommandReceiverNode):
 
                     if "file-name" in cmd:
                         # 指定された表情を表示
-                        if cmd == "":
+                        if cmd["file-name"] == "":
                             self.tk_label.configure(image="")
                         else:
                             img_path = self.img_dir.joinpath(cmd["file-name"])
