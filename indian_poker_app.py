@@ -210,6 +210,7 @@ class IndianPokerApp(object):
             self.node_manager.send_command("motor", { "command": "stop" })
         elif sequence_type == 1:
             self.node_manager.send_command("motor", {
+                "command": "set-speed-imm", "speed_left": 5000, "speed_right": 5000 })
             time.sleep(wait_time)
             self.node_manager.send_command("motor", {
                 "command": "set-speed-imm", "speed_left": -5000, "speed_right": -5000 })
