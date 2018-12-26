@@ -121,9 +121,6 @@ class MotionDetectionNode(CommandReceiverNode):
         frame_delta = cv2.threshold(frame_delta, 40, 255, cv2.THRESH_BINARY)[1]
         # 差分が一定値以上の部分を広げて輪郭を形成
         frame_delta = cv2.dilate(frame_delta, None, iterations=2)
-
-        cv2.imshow("thresholded", frame_delta)
-        cv2.waitKey(1)
         
         # 輪郭を差分画像から取り出し
         contours = cv2.findContours(frame_delta.copy(),
