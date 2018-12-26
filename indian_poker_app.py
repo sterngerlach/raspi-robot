@@ -401,7 +401,7 @@ class IndianPokerApp(object):
 
             self.update_face()
 
-            self.game_state = GameState.ASK_OPPONENT_ACTION
+            self.game_state = GameState.ASK_OPPONENT_CARD
         else:
             if self.angry_value > 90:
                 self.face("super-angry.png")
