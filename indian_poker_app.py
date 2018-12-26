@@ -344,7 +344,7 @@ class IndianPokerApp(object):
         self.talk_randomly([
             "ゲームの説明は、しといた方がいいかな?",
             "ゲームの説明は一応しておきましょうか?",
-            "ゲームの説明はいりますか?",
+            "ゲームの説明は、いりますか?",
             "ゲームの説明は必要ですか?"])
         
         self.move_randomly()
@@ -856,7 +856,7 @@ class IndianPokerApp(object):
         elif self.opponent_action == GameAction.FOLD:
             self.pi_win_times += 1
             self.pi_score += 10
-            self.opponent_action -= 10
+            self.opponent_score -= 10
 
             self.face("smiling-with-closed-eyes.png")
             self.sleep_randomly(0.2, 0.3)
