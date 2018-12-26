@@ -42,7 +42,7 @@ class DarumaFellOverApp(object):
         """コンストラクタ"""
 
         # ロボットの各種設定
-        self.__config = {
+        self.config = {
             "enable_motor": True,
             "enable_servo": True,
             "enable_srf02": False,
@@ -71,241 +71,255 @@ class DarumaFellOverApp(object):
         }
 
         # ロボットのモジュールの管理クラスを初期化
-        self.__node_manager = NodeManager(self.__config)
+        self.node_manager = NodeManager(self.config)
     
-    def __talk(self, sentence):
+    def talk(self, sentence):
         """音声合成エンジンOpenJTalkで指定された文章を話す"""
-        self.__node_manager.send_command("openjtalk", { "sentence": sentence })
-        self.__openjtalk_node.wait_until_all_command_done()
+        self.node_manager.send_command("openjtalk", { "sentence": sentence })
+        self.openjtalk_node.wait_until_all_command_done()
 
-    def __aplay(self, file_name):
+    def aplay(self, file_name):
         """指定された音声ファイルを再生"""
-        self.__node_manager.send_command("openjtalk", { "file_name": file_name })
-        self.__openjtalk_node.wait_until_all_command_done()
+        self.node_manager.send_command("openjtalk", { "file_name": file_name })
+        self.openjtalk_node.wait_until_all_command_done()
 
-    def __send_motor_command(self, cmd):
+    def send_motor_command(self, cmd):
         """モータに指定された命令を送信"""
-        self.__node_manager.send_command("motor", cmd)
+        self.node_manager.send_command("motor", cmd)
 
-    def __detect(self):
+    def detect(self):
         """トランプカードの検出命令を送信"""
-        self.__node_manager.send_command("card", { "command": "detect" })
+        self.node_manager.send_command("card", { "command": "detect" })
     
-    def __input(self):
+    def input(self):
         """ノードからアプリケーションへのメッセージを処理"""
         while True:
             # ノードからアプリケーションへのメッセージを取得
-            if not self.__msg_queue.empty():
+            if not self.msg_queue.empty():
                 try:
-                    msg = self.__msg_queue.get_nowait()
+                    msg = self.msg_queue.get_nowait()
 
                     # メッセージの処理
                     if msg["sender"] == "julius":
-                        self.__handle_julius_msg(msg["content"])
+                        self.handle_julius_msg(msg["content"])
                     elif msg["sender"] == "card":
-                        self.__handle_card_msg(msg["content"])
+                        self.handle_card_msg(msg["content"])
                     elif msg["sender"] == "motion":
-                        self.__handle_motion_msg(msg["content"])
+                        self.handle_motion_msg(msg["content"])
                 except queue.Empty:
                     return
             else:
                 return
         
-    def __julius_msg_word_contains(self, recognized_words, word, accuracy_threshold):
+    def julius_msg_word_contains(self, recognized_words, word, accuracy_threshold):
         """音声認識エンジンJuliusからのメッセージに指定された語句が含まれるかを判定"""
         return len([recognized_word[0] for recognized_word in recognized_words \
             if recognized_word[0] == word and recognized_word[1] >= accuracy_threshold]) > 0
 
-    def __opponent_said(self, word, accuracy_threshold=0.95):
-        return self.__julius_msg_word_contains(self.__julius_result, word, accuracy_threshold)
+    def opponent_said(self, word, accuracy_threshold=0.95):
+        return self.julius_msg_word_contains(self.julius_result, word, accuracy_threshold)
 
-    def __handle_julius_msg(self, msg_content):
+    def handle_julius_msg(self, msg_content):
         """音声認識エンジンJuliusからのメッセージを取得"""
-        self.__julius_result = msg_content["words"]
+        self.julius_result = msg_content["words"]
     
-    def __handle_card_msg(self, msg_content):
+    def handle_card_msg(self, msg_content):
         """トランプカードを検出するノードからのメッセージを取得"""
         if msg_content["state"] == "detected":
-            self.__card_detection_result = msg_content["cards"]
+            self.card_detection_result = msg_content["cards"]
 
-    def __handle_motion_msg(self, msg_content):
+    def handle_motion_msg(self, msg_content):
         """人の動きを検出するノードからのメッセージを取得"""
-        print("DarumaFellOverApp::__handle_motion_msg(): " +
+        print("DarumaFellOverApp::handle_motion_msg(): " +
               "message sent from MotionDetectionNode: {}"
               .format(msg_content))
 
         if msg_content["state"] == "motion-detected":
-            self.__motion_detected = True
+            self.motion_detected = True
 
-    def __update(self):
+    def update(self):
         """ゲームの状態を更新"""
-        self.__state_func_table[self.__game_state]()
+        self.state_func_table[self.game_state]()
 
-    def __on_init(self):
-        self.__talk("だるまさんが転んだの準備はできましたか")
-        self.__game_state = GameState.ASK_IF_READY
-        self.__julius_result = None
+    def on_init(self):
+        self.face("slightly-smiling.png")
+        self.talk("だるまさんが転んだの準備はできましたか")
+        self.game_state = GameState.ASK_IF_READY
+        self.julius_result = None
 
-    def __on_ask_if_ready(self):
-        if self.__julius_result is None:
+    def on_ask_if_ready(self):
+        if self.julius_result is None:
             return
 
-        if self.__opponent_said("はい"):
-            self.__game_state = GameState.RULE_DESCRIPTION
-        elif self.__opponent_said("まだ"):
-            self.__aplay("bye.wav")
-            self.__app_exit = True
+        if self.opponent_said("はい"):
+            self.game_state = GameState.RULE_DESCRIPTION
+        elif self.opponent_said("まだ"):
+            self.aplay("bye.wav")
+            self.app_exit = True
         else:
-            self.__julius_result = None
+            self.julius_result = None
 
-    def __on_rule_description(self):
-        self.__talk("だるまさんが転んだを始めましょう")
-        self.__talk("私がもちろん鬼になるので、あなたは離れてくださいね")
-        self.__current_time = time.monotonic()
-        self.__game_state = GameState.WAIT_A_MOMENT
+    def on_rule_description(self):
+        self.face("slightly-smiling.png")
+        self.talk("だるまさんが転んだを始めましょう")
+        self.face("wink.png")
+        self.talk("私がもちろん鬼になるので、あなたは離れてくださいね")
+        self.face("slightly-smiling.png")
+        self.current_time = time.monotonic()
+        self.game_state = GameState.WAIT_A_MOMENT
 
-    def __on_wait_a_moment(self):
-        self.__elapsed_time = time.monotonic() - self.__current_time
+    def on_wait_a_moment(self):
+        self.elapsed_time = time.monotonic() - self.current_time
 
-        if self.__elapsed_time > 5.0:
-            self.__talk("準備はできましたね")
-            self.__talk("それでは始めましょう")
-            self.__game_state = GameState.SPEAK
+        if self.elapsed_time > 5.0:
+            self.face("very-happy.png")
+            self.talk("準備はできましたね")
+            self.face("slightly-smiling.png")
+            self.talk("それでは始めましょう")
+            self.face("")
+            self.game_state = GameState.SPEAK
     
-    def __on_speak(self):
-        __speech_type = random.randint(0, 4)
+    def on_speak(self):
+        speech_type = random.randint(0, 4)
 
-        if __speech_type == 0:
-            self.__talk("だるまさんがころん、")
-        elif __speech_type == 1:
-            self.__talk("だ、る、ま、さ、ん、が、こ、ろ、ん、")
-        elif __speech_type == 2:
-            self.__talk("だーーるーーまーーさーーんーーがーーこーーろーーんーー")
-        elif __speech_type == 3:
-            self.__talk("だ、る、ま、さ、ん、がころん")
-        elif __speech_type == 4:
-            self.__talk("だるまさん、が、こ、ろーん、")
+        if speech_type == 0:
+            self.talk("だるまさんがころん、")
+        elif speech_type == 1:
+            self.talk("だ、る、ま、さ、ん、が、こ、ろ、ん、")
+        elif speech_type == 2:
+            self.talk("だーーるーーまーーさーーんーーがーーこーーろーーんーー")
+        elif speech_type == 3:
+            self.talk("だ、る、ま、さ、ん、がころん")
+        elif speech_type == 4:
+            self.talk("だるまさん、が、こ、ろーん、")
         
-        self.__game_state = GameState.SPEAK2
+        self.game_state = GameState.SPEAK2
         
-    def __on_speak2(self):
-        if self.__opponent_said("タッチ"):
-            self.__game_state = GameState.TOUCHED
+    def on_speak2(self):
+        if self.opponent_said("タッチ"):
+            self.game_state = GameState.TOUCHED
             return
 
         # 適当な時間だけ待つ
-        self.__wait_time = random.uniform(0.0, 2.0)
-        time.sleep(self.__wait_time)
+        self.wait_time = random.uniform(0.0, 2.0)
+        time.sleep(self.wait_time)
 
-        self.__game_state = GameState.SPEAK3
+        self.game_state = GameState.SPEAK3
         
-    def __on_speak3(self):
-        if self.__opponent_said("タッチ"):
-            self.__game_state = GameState.TOUCHED
+    def on_speak3(self):
+        if self.opponent_said("タッチ"):
+            self.game_state = GameState.TOUCHED
             return
         
-        self.__talk("だー")
-        self.__game_state = GameState.TURN_AROUND
+        self.talk("だー")
+        self.game_state = GameState.TURN_AROUND
 
-    def __on_turn_around(self):
+    def on_turn_around(self):
         # サーボモータを回転
-        self.__node_manager.send_command("servo", { "angle": 90 })
+        self.node_manager.send_command("servo", { "angle": 90 })
         time.sleep(1.0)
+
+        self.face("very-happy.png")
         
         # 人の動きの検出を開始
-        self.__node_manager.send_command("motion", { "command": "start" })
-        self.__current_time = time.monotonic()
-        self.__wait_time = random.uniform(4.0, 8.0)
-        self.__game_state = GameState.DETECT_MOTION
+        self.node_manager.send_command("motion", { "command": "start" })
+        self.current_time = time.monotonic()
+        self.wait_time = random.uniform(4.0, 8.0)
+        self.game_state = GameState.DETECT_MOTION
 
-    def __on_detect_motion(self):
-        self.__elapsed_time = time.monotonic() - self.__current_time
+    def on_detect_motion(self):
+        self.elapsed_time = time.monotonic() - self.current_time
         
-        if self.__elapsed_time > self.__wait_time:
-            self.__game_state = GameState.SPEAK
-            self.__node_manager.send_command("motion", { "command": "end" })
-            self.__node_manager.send_command("servo", { "angle": 0 })
+        if self.elapsed_time > self.wait_time:
+            self.game_state = GameState.SPEAK
+            self.node_manager.send_command("motion", { "command": "end" })
+            self.node_manager.send_command("servo", { "angle": 0 })
             time.sleep(1.0)
             return
 
-        if self.__motion_detected:
-            self.__talk("動きましたね")
-            self.__motion_detected = False
-            self.__pi_win = True
-            self.__node_manager.send_command("motion", { "command": "end" })
-            self.__node_manager.send_command("servo", { "angle": 0 })
+        if self.motion_detected:
+            self.face("tongue-out-1.png")
+            self.talk("動きましたね")
+            self.motion_detected = False
+            self.pi_win = True
+            self.node_manager.send_command("motion", { "command": "end" })
+            self.node_manager.send_command("servo", { "angle": 0 })
             time.sleep(1.0)
-            self.__game_state = GameState.RESULT
+            self.game_state = GameState.RESULT
             return
 
-    def __on_touched(self):
-        self.__talk("ああ捕まった")
-        self.__pi_win = False
-        self.__game_state = GameState.RESULT
+    def on_touched(self):
+        self.face("weary.png")
+        self.talk("ああ捕まった")
+        self.pi_win = False
+        self.game_state = GameState.RESULT
 
-    def __on_result(self):
-        if self.__pi_win:
-            self.__talk("私の勝ちです")
+    def on_result(self):
+        if self.pi_win:
+            self.face("smiling-with-closed-eyes.png")
+            self.talk("私の勝ちです")
         else:
-            self.__talk("あなたの勝ちです")
-            self.__talk("悔しいなあ")
+            self.face("angel.png")
+            self.talk("あなたの勝ちです")
+            self.face("slightly-smiling.png")
+            self.talk("悔しいなあ")
 
-        self.__app_exit = True
+        self.app_exit = True
     
-    def __run_game(self):
+    def run_game(self):
         """ゲームの実行"""
         try:
             while True:
                 # 入力を処理
-                self.__input()
+                self.input()
 
                 # ゲームの状態を更新
-                self.__update()
+                self.update()
                 
                 # アプリケーションを終了
-                if self.__app_exit:
+                if self.app_exit:
                     break
 
                 time.sleep(0.5)
         except KeyboardInterrupt:
             # プロセスが割り込まれた場合
-            print("DarumaFellOverApp::__run_game(): KeyboardInterrupt occurred")
+            print("DarumaFellOverApp::run_game(): KeyboardInterrupt occurred")
 
     def run(self):
         # 使用するノードを取得
-        self.__msg_queue = self.__node_manager.get_msg_queue()
-        self.__openjtalk_node = self.__node_manager.get_node("openjtalk")
+        self.msg_queue = self.node_manager.get_msg_queue()
+        self.openjtalk_node = self.node_manager.get_node("openjtalk")
 
         # ノードの実行を開始
-        self.__node_manager.run_nodes()
+        self.node_manager.run_nodes()
 
         # プログラムを終了させるかどうか
-        self.__app_exit = False
+        self.app_exit = False
 
-        self.__game_state = GameState.INIT
+        self.game_state = GameState.INIT
 
-        self.__julius_result = None
-        self.__card_detection_result = None
-        self.__motion_detected = False
-        self.__pi_win = False
+        self.julius_result = None
+        self.card_detection_result = None
+        self.motion_detected = False
+        self.pi_win = False
 
         # 状態と実行される関数のディクショナリ
-        self.__state_func_table = {
-            GameState.INIT: self.__on_init,
-            GameState.ASK_IF_READY: self.__on_ask_if_ready,
-            GameState.RULE_DESCRIPTION: self.__on_rule_description,
-            GameState.WAIT_A_MOMENT: self.__on_wait_a_moment,
-            GameState.SPEAK: self.__on_speak,
-            GameState.SPEAK2: self.__on_speak2,
-            GameState.SPEAK3: self.__on_speak3,
-            GameState.TURN_AROUND: self.__on_turn_around,
-            GameState.DETECT_MOTION: self.__on_detect_motion,
-            GameState.TOUCHED: self.__on_touched,
-            GameState.RESULT: self.__on_result
+        self.state_func_table = {
+            GameState.INIT: self.on_init,
+            GameState.ASK_IF_READY: self.on_ask_if_ready,
+            GameState.RULE_DESCRIPTION: self.on_rule_description,
+            GameState.WAIT_A_MOMENT: self.on_wait_a_moment,
+            GameState.SPEAK: self.on_speak,
+            GameState.SPEAK2: self.on_speak2,
+            GameState.SPEAK3: self.on_speak3,
+            GameState.TURN_AROUND: self.on_turn_around,
+            GameState.DETECT_MOTION: self.on_detect_motion,
+            GameState.TOUCHED: self.on_touched,
+            GameState.RESULT: self.on_result
         }
 
         # ゲームを実行
-        self.__run_game()
+        self.run_game()
 
 def main():
     # アプリケーションのインスタンスを作成
