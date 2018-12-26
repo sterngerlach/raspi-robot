@@ -4,6 +4,7 @@
 
 import os
 import queue
+import random
 import sys
 import time
 
@@ -24,19 +25,19 @@ class GameState(Enum):
     ASK_IF_READY = 2
     ASK_IF_DESCRIPTION_NEEDED = 3
     RECOGNIZE_IF_DESCRIPTION_NEEDED = 4
-    RULE_DESCRIPTION = 4
-    ASK_OPPONENT_ACTION = 5
-    RECOGNIZE_OPPONENT_ACTION = 6
-    ASK_OPPONENT_CARD = 7
-    RECOGNIZE_OPPONENT_CARD = 8
-    CHOOSE_ACTION = 9
-    ASK_CARD = 10
-    RECOGNIZE_CARD = 11
-    ROUND_FINISHED = 12
-    RESULT = 13
-    ASK_RANDOM_QUESTION = 14
-    RECOGNIZE_RANDOM_QUESTION = 15
-    TALK_RANDOM_THINGS = 16
+    RULE_DESCRIPTION = 5
+    ASK_OPPONENT_ACTION = 6
+    RECOGNIZE_OPPONENT_ACTION = 7
+    ASK_OPPONENT_CARD = 8
+    RECOGNIZE_OPPONENT_CARD = 9
+    CHOOSE_ACTION = 10
+    ASK_CARD = 11
+    RECOGNIZE_CARD = 12
+    ROUND_FINISHED = 13
+    RESULT = 14
+    ASK_RANDOM_QUESTION = 15
+    RECOGNIZE_RANDOM_QUESTION = 16
+    TALK_RANDOM_THINGS = 17
 
 class GameAction(Enum):
     """
@@ -125,6 +126,7 @@ class PseudoBlackjackApp(object):
             self.node_manager.send_command("motor", { "command": "stop" })
         elif sequence_type == 1:
             self.node_manager.send_command("motor", {
+                "command": "set-speed-imm", "speed_left": 5000, "speed_right": 5000 })
             time.sleep(wait_time)
             self.node_manager.send_command("motor", {
                 "command": "set-speed-imm", "speed_left": -5000, "speed_right": -5000 })
@@ -175,6 +177,7 @@ class PseudoBlackjackApp(object):
         self.state_func_table[self.game_state]()
 
     def on_init(self):
+        self.face("slightly-smiling.png")
         self.talk("ニセブラックジャックの準備はできましたか")
 
         self.move_randomly()
@@ -186,7 +189,7 @@ class PseudoBlackjackApp(object):
         if self.julius_result is None:
             return
 
-        if self.opponent_said("はい"):
+        if self.opponent_said("はい") or self.opponent_said("うん"):
             self.face("slightly-smiling.png")
             self.game_state = GameState.ASK_IF_DESCRIPTION_NEEDED
         elif self.opponent_said("まだ"):
@@ -238,21 +241,22 @@ class PseudoBlackjackApp(object):
         self.talk("私とあなたが交互にカードを引いていきます")
         self.talk("引いたカードの数字の合計が21を超えたら即ゲームオーバーになります")
         self.talk("数字の合計が21を超えなかったら、数字が大きい方が勝ちになります")
-        self.talk("ゲームは5回戦まで行われます")
+        self.talk("ゲームは3回戦まで行われます")
         self.talk("それでは早速始めましょう")
 
         self.game_state = GameState.ASK_OPPONENT_ACTION
     
     def on_ask_opponent_action(self):
-        if self.julius_result is None:
-            return
-
         if len(self.opponent_cards) == 0:
             self.face("shy.png")
             self.talk("まずはカードを引いてください")
             self.face("slightly-smiling.png")
             self.card_detection_result = None
             self.game_state = GameState.ASK_OPPONENT_CARD
+            return
+
+        if sum(self.opponent_cards) > 21:
+            self.game_state = GameState.CHOOSE_ACTION
             return
         
         self.face("relieved.png")
@@ -306,7 +310,7 @@ class PseudoBlackjackApp(object):
             self.face("relieved.png")
             self.talk("分かりました")
             self.face("slightly-smiling.png")
-            self.sleep(0.2, 0.3)
+            time.sleep(0.3)
             self.face("wink.png")
             self.talk_randomly([
                 "もしかしたら読み取り間違えているかもしれませんが、ご容赦ください",
@@ -440,7 +444,7 @@ class PseudoBlackjackApp(object):
 
         self.game_times += 1
 
-        if self.game_times < 5:
+        if self.game_times < 3:
             self.face("slightly-smiling.png")
             self.talk("次の試合をやりましょう")
             self.opponent_cards = []
@@ -519,7 +523,7 @@ class PseudoBlackjackApp(object):
             "なにか、辛いことはありましたか?",
             "卒論書けそう?"]
         self.question_type = random.randint(0, len(random_questions) - 1)
-        self.talk(random_questions[question_type])
+        self.talk(random_questions[self.question_type])
         
         self.game_state = GameState.RECOGNIZE_RANDOM_QUESTION
         self.julius_result = None
