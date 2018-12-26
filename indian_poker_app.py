@@ -289,7 +289,7 @@ class IndianPokerApp(object):
         if self.julius_result is None:
             return
 
-        if self.opponent_said("はい"):
+        if self.opponent_said("はい") or self.opponent_said("うん"):
             if self.angry_value > 90:
                 self.face("angry.png")
             if self.angry_value > 70:
@@ -356,7 +356,7 @@ class IndianPokerApp(object):
         if self.julius_result is None:
             return
 
-        if self.opponent_said("はい"):
+        if self.opponent_said("はい") or self.opponent_said("うん"):
             if self.angry_value > 90:
                 self.face("angry.png")
                 self.talk("面倒くさいな")
