@@ -91,6 +91,10 @@ class DarumaFellOverApp(object):
         """トランプカードの検出命令を送信"""
         self.node_manager.send_command("card", { "command": "detect" })
     
+    def face(self, file_name):
+        """表情の設定"""
+        self.node_manager.send_command("face", { "file-name": file_name })
+    
     def input(self):
         """ノードからアプリケーションへのメッセージを処理"""
         while True:
