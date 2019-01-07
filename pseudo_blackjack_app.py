@@ -75,8 +75,8 @@ class PseudoBlackjackApp(object):
             "card": {
                 "server_host": sys.argv[1],
                 "camera_id": 0,
-                "frame_width": 640,
-                "frame_height": 480
+                "frame_width": 1280,
+                "frame_height": 720
             },
             "face": {
                 "window_width": 640,
@@ -444,7 +444,7 @@ class PseudoBlackjackApp(object):
 
         self.game_times += 1
 
-        if self.game_times < 3:
+        if self.game_times < 1:
             self.face("slightly-smiling.png")
             self.talk("次の試合をやりましょう")
             self.opponent_cards = []

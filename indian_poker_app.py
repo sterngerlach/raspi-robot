@@ -73,8 +73,8 @@ class IndianPokerApp(object):
             "card": {
                 "server_host": sys.argv[1],
                 "camera_id": 0,
-                "frame_width": 640,
-                "frame_height": 480
+                "frame_width": 1280,
+                "frame_height": 720
             },
             "face": {
                 "window_width": 640,
@@ -522,7 +522,7 @@ class IndianPokerApp(object):
                 self.face("weary.png")
                 self.talk("だからカードを見せろよ")
             elif self.angry_value > 70:
-                self.face("super-sad")
+                self.face("super-sad.png")
                 self.talk("早くカードを見せろよ")
             elif self.angry_value > 50:
                 self.face("unhappy.png")
@@ -934,7 +934,7 @@ class IndianPokerApp(object):
 
         self.game_times += 1
 
-        if self.game_times < 5:
+        if self.game_times < 2:
             if self.angry_value > 95:
                 self.face("super-angry.png")
                 self.talk("もう負けそうだから次の試合はやらない")
