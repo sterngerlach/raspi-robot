@@ -20,6 +20,8 @@
 はい	h a i
 % YES2
 うん	u N
+% OK
+オッケー	o q k e:
 % NO
 いいえ	i i e
 % NOT_YET
@@ -30,6 +32,8 @@
 掛ける	k a k e r u
 % TOUCH
 タッチ	t a q ch i
+% PLEASE
+お願い	o n e g a i
 % NS_B
 [s]     silB
 % NS_E

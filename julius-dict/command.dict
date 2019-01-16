@@ -9,10 +9,12 @@
 8	[に]	n i
 9	[はい]	h a i
 10	[うん]	u N
-11	[いいえ]	i i e
-12	[まだ]	m a d a
-13	[降りる]	o r i r u
-14	[掛ける]	k a k e r u
-15	[タッチ]	t a q ch i
-16	[[s]]	silB
-17	[[/s]]	silE
+11	[オッケー]	o q k e:
+12	[いいえ]	i i e
+13	[まだ]	m a d a
+14	[降りる]	o r i r u
+15	[掛ける]	k a k e r u
+16	[タッチ]	t a q ch i
+17	[お願い]	o n e g a i
+18	[[s]]	silB
+19	[[/s]]	silE
