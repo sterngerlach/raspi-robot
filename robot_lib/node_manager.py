@@ -19,6 +19,7 @@ from openjtalk_node import OpenJTalkNode
 from google_speech_api_node import GoogleSpeechApiNode
 from webcam_node import WebCamNode
 from card_detection_node import CardDetectionNode
+from fashion_check_node import FashionCheckNode
 from motion_detection_node import MotionDetectionNode
 from facial_expression_node import FacialExpressionNode
 
@@ -52,44 +53,59 @@ class NodeManager(object):
         self.__spi_initialized = [False for i in range(self.__spi_channels_num)]
 
         # モータのノードを初期化
-        if self.__config_dict["enable_motor"]:
+        if "enable_motor" in self.__config_dict and \
+            self.__config_dict["enable_motor"]:
             self.__setup_motor_node(config_dict["motor"])
 
         # サーボモータのノードを初期化
-        if self.__config_dict["enable_servo"]:
+        if "enable_servo" in self.__config_dict and \
+            self.__config_dict["enable_servo"]:
             self.__setup_servo_motor_node(config_dict["servo"])
         
         # 超音波センサのノードを初期化
-        if self.__config_dict["enable_srf02"]:
+        if "enable_srf02" in self.__config_dict and \
+            self.__config_dict["enable_srf02"]:
             self.__setup_srf02_node(config_dict["srf02"])
 
         # 音声認識エンジンJuliusのノードを初期化
-        if self.__config_dict["enable_julius"]:
+        if "enable_julius" in self.__config_dict and \
+            self.__config_dict["enable_julius"]:
             self.__setup_julius_node(config_dict["julius"])
 
         # 音声合成システムOpenJTalkのノードを初期化
-        if self.__config_dict["enable_openjtalk"]:
+        if "enable_openjtalk" in self.__config_dict and \
+            self.__config_dict["enable_openjtalk"]:
             self.__setup_openjtalk_node(config_dict["openjtalk"])
 
         # Google Cloud Speech APIを利用した音声認識のノードを初期化
-        if self.__config_dict["enable_speechapi"]:
+        if "enable_speechapi" in self.__config_dict and \
+            self.__config_dict["enable_speechapi"]:
             self.__setup_speechapi_node(config_dict["speechapi"])
 
         # ウェブカメラのノードを初期化
-        if self.__config_dict["enable_webcam"]:
+        if "enable_webcam" in self.__config_dict and \
+            self.__config_dict["enable_webcam"]:
             self.__setup_webcam_node(config_dict["webcam"])
 
         # カード検出のノードを初期化
-        if self.__config_dict["enable_card"]:
+        if "enable_card" in self.__config_dict and \
+            self.__config_dict["enable_card"]:
             self.__setup_card_detection_node(config_dict["card"])
 
         # 人の動き検出のノードを初期化
-        if self.__config_dict["enable_motion"]:
+        if "enable_motion" in self.__config_dict and \
+            self.__config_dict["enable_motion"]:
             self.__setup_motion_detection_node(config_dict["motion"])
 
         # 顔の表情のノードを初期化
-        if self.__config_dict["enable_face"]:
+        if "enable_face" in self.__config_dict and \
+            self.__config_dict["enable_face"]:
             self.__setup_facial_expression_node(config_dict["face"])
+
+        # 服装がおしゃれかどうかを判定するノードを初期化
+        if "enable_fashion" in self.__config_dict and \
+            self.__config_dict["enable_fashion"]:
+            self.__setup_fashion_check_node(config_dict["fashion"])
 
     def __setup_gpio(self):
         """GPIOの初期化"""
@@ -234,6 +250,20 @@ class NodeManager(object):
 
         # カードを検出するノードを追加
         self.__add_command_receiver_node("card", self.__card_detection_node)
+
+    def __setup_fashion_check_node(self, config_dict):
+        """服装がおしゃれかどうかを判定するノードを追加"""
+
+        # 服装がおしゃれかどうかを判定するノードを作成
+        self.__fashion_check_node = FashionCheckNode(
+            self.__process_manager, self.__msg_queue,
+            config_dict["server_host"],
+            config_dict["camera_id"],
+            config_dict["frame_width"],
+            config_dict["frame_height"])
+
+        # 服装がおしゃれかどうかを判定するノードを追加
+        self.__add_command_receiver_node("fashion", self.__fashion_check_node)
 
     def __setup_motion_detection_node(self, config_dict):
         """人の動きを検出するノードを初期化"""
