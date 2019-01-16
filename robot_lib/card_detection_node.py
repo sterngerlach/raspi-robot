@@ -125,10 +125,18 @@ class CardDetectionNode(CommandReceiverNode):
         """カードの検出"""
 
         # 画像データを読み捨て
-        ret, frame = self.video_capture.read()
+        ret, frame0 = self.video_capture.read()
 
         # 画像データを作成
         ret, frame = self.video_capture.read()
+
+        # 画像がキャプチャできなかった場合はエラー
+        if frame is None:
+            if frame0 is not None:
+                frame = frame0
+            else
+                return []
+
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         ret, frame = cv2.imencode(".png", frame, [int(cv2.IMWRITE_PNG_COMPRESSION), 5])
         frame_data = pickle.dumps(frame)
