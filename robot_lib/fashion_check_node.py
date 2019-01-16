@@ -35,11 +35,11 @@ class FashionCheckNode(CommandReceiverNode):
         self.client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
 
         # 検出サーバに接続
-        self.client_socket.connect((self.server_host, CardDetectionNode.SERVER_PORT))
+        self.client_socket.connect((self.server_host, FashionCheckNode.SERVER_PORT))
 
         print("FashionCheckNode::__init__(): " +
               "connected to fashion check server (host: {0}, port: {1})"
-              .format(self.server_host, CardDetectionNode.SERVER_PORT))
+              .format(self.server_host, FashionCheckNode.SERVER_PORT))
 
         # ビデオ撮影デバイスの作成
         self.camera_id = camera_id

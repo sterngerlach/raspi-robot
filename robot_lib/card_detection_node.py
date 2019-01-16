@@ -134,7 +134,7 @@ class CardDetectionNode(CommandReceiverNode):
         if frame is None:
             if frame0 is not None:
                 frame = frame0
-            else
+            else:
                 return []
 
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
