@@ -153,7 +153,7 @@ class OshaDasaApp(object):
         if self.julius_result is None:
             return
 
-        if self.opponent_said("はい") or self.opponent_said("うん"):
+        if self.opponent_said("はい") or self.opponent_said("うん") or self.opponent_said("お願い"):
             self.face("slightly-smiling.png")
             self.app_state = AppState.ASK_IF_PHOTO_READY
         elif self.opponent_said("まだ"):
@@ -175,7 +175,7 @@ class OshaDasaApp(object):
         if self.julius_result is None:
             return
         
-        if self.opponent_said("はい") or self.opponent_said("うん"):
+        if self.opponent_said("はい") or self.opponent_said("うん") or self.opponent_said("お願い"):
             self.face("sunglasses.png")
             self.talk("はい、それでは撮影を開始します")
             self.app_state = AppState.TAKE_PHOTO
@@ -194,11 +194,12 @@ class OshaDasaApp(object):
         self.face("shy.png")
         self.talk("撮影を3秒後に行います")
         time.sleep(1.0)
-        time.sleep("さん")
+        self.talk("さん")
         time.sleep(1.0)
-        time.sleep("に")
+        self.talk("に")
         time.sleep(1.0)
-        time.sleep("いち")
+        self.talk("いち")
+        self.aplay("camera.wav")
 
         self.app_state = AppState.RECOGNIZE_PHOTO
         self.fashion_result = None
@@ -250,7 +251,7 @@ class OshaDasaApp(object):
         if self.julius_result is None:
             return
 
-        if self.opponent_said("はい") or self.opponent_said("うん"):
+        if self.opponent_said("はい") or self.opponent_said("うん") or self.opponent_said("お願い"):
             self.face("thinking.png")
             self.talk("わかりました")
             self.app_state = AppState.ASK_IF_PHOTO_READY
