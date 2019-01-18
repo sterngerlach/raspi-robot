@@ -456,10 +456,10 @@ class PseudoBlackjackApp(object):
             
             random_value = random.uniform(0.0, 1.0)
 
-            if random_value > 0.4:
+            if random_value > 0.8:
                 self.game_state = GameState.ASK_RANDOM_QUESTION
                 self.next_game_state = GameState.ASK_OPPONENT_ACTION
-            elif random_value > 0.8:
+            elif random_value > 0.6:
                 self.game_state = GameState.TALK_RANDOM_THINGS
                 self.next_game_state = GameState.ASK_OPPONENT_ACTION
             else:

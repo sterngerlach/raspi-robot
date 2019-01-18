@@ -328,6 +328,7 @@ class IndianPokerApp(object):
                 self.talk("すみませんがもう一度繰り返してください")
 
             self.move_randomly()
+            self.update_angry_value(5)
 
             self.julius_result = None
 
@@ -423,6 +424,7 @@ class IndianPokerApp(object):
                 self.talk("すみませんが、もう一度答えていただけませんか")
 
             self.move_randomly()
+            self.update_angry_value(5)
 
             self.julius_result = None
 
@@ -538,6 +540,7 @@ class IndianPokerApp(object):
                 self.talk("あなたのカードが見えません")
 
             self.move_randomly()
+            self.update_angry_value(5)
 
             self.game_state = GameState.ASK_OPPONENT_CARD
             self.card_detection_result = None
@@ -654,6 +657,7 @@ class IndianPokerApp(object):
                 self.talk("すみませんが、もう一度答えていただけませんか")
 
             self.move_randomly()
+            self.update_angry_value(5)
 
             self.julius_result = None
 
@@ -808,6 +812,7 @@ class IndianPokerApp(object):
                 self.talk("私のカードが見えません")
 
             self.move_randomly()
+            self.update_angry_value(5)
 
             self.game_state = GameState.ASK_CARD
             self.card_detection_result = None
